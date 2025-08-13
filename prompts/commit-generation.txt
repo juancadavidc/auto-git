@@ -1,0 +1,30 @@
+Generate a conventional commit message. Output ONLY the commit message.
+
+TEMPLATE: type(scope): description
+
+RULES:
+- Max 50 chars
+- Imperative mood
+- English only
+- No punctuation at end
+
+TYPES:
+feat: new feature
+fix: bug fix
+docs: documentation
+style: formatting
+refactor: code restructure
+test: testing
+chore: maintenance
+perf: performance
+ci: continuous integration
+build: build system
+
+EXAMPLES:
+feat(auth): add OAuth2 support
+fix(api): handle null pointer
+docs: update install guide
+refactor: simplify query logic
+chore: update dependencies
+
+Generate commit message:

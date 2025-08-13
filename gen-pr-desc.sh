@@ -5,7 +5,8 @@ set -euo pipefail
 # Improved PR Description Generator
 # 
 # Features:
-# - Generates only PR_DESCRIPTION.md (overwrites existing)
+# - Outputs to stdout by default (no file creation)
+# - Optional file output with --output-file flag
 # - External prompt files for maintainability
 # - Optional validation step with --validate flag
 # - Cleaner structure and error handling
@@ -13,8 +14,10 @@ set -euo pipefail
 
 # Default configuration
 MODEL="${MODEL:-llama3.1}"
-VALIDATOR_MODEL="${VALIDATOR_MODEL:-qwen2.5:7b}"
-OUTFILE="${1:-PR_DESCRIPTION.md}"
+#VALIDATOR_MODEL="${VALIDATOR_MODEL:-qwen2.5:7b}"
+VALIDATOR_MODEL="${VALIDATOR_MODEL:-llama3.1}"
+OUTFILE=""
+OUTPUT_TO_STDOUT=true
 MAX_DIFF_LINES="${MAX_DIFF_LINES:-4000}"
 NUM_CTX="${NUM_CTX:-8192}"
 
@@ -30,24 +33,34 @@ while [[ $# -gt 0 ]]; do
       VALIDATE_MODE=true
       shift
       ;;
+    --output-file|-o)
+      if [[ -n "${2:-}" ]]; then
+        OUTFILE="$2"
+        OUTPUT_TO_STDOUT=false
+        shift 2
+      else
+        error "--output-file requires a filename argument"
+      fi
+      ;;
     --help|-h)
-      echo "Usage: $0 [OUTPUT_FILE] [--validate] [--help]"
+      echo "Usage: $0 [--validate] [--output-file FILE] [--help]"
+      echo ""
+      echo "By default, outputs the PR description to stdout (terminal)."
       echo ""
       echo "Options:"
-      echo "  OUTPUT_FILE    Output file name (default: PR_DESCRIPTION.md)"
-      echo "  --validate     Enable validation step with second LLM"
-      echo "  --help, -h     Show this help message"
+      echo "  --validate         Enable validation step with second LLM"
+      echo "  --output-file, -o  Save output to specified file instead of stdout"
+      echo "  --help, -h         Show this help message"
       echo ""
       echo "Environment variables:"
       echo "  MODEL                 Primary LLM model (default: llama3.1)"
-      echo "  VALIDATOR_MODEL       Validation LLM model (default: qwen2.5:7b)"
+      echo "  VALIDATOR_MODEL       Validation LLM model (default: llama3.1)"
       echo "  MAX_DIFF_LINES       Max diff lines to process (default: 4000)"
       echo "  NUM_CTX              Context window size (default: 8192)"
       exit 0
       ;;
     *)
-      OUTFILE="$1"
-      shift
+      error "Unknown option: $1. Use --help for usage information."
       ;;
   esac
 done
@@ -148,10 +161,21 @@ generate_pr_description() {
     local response
     response="$("${cmd_array[@]}" < "$prompt_file")"
     
-    printf "%s\n" "$response" > "$OUTFILE"
-    rm -f "$prompt_file"
+    # Store response for potential validation
+    GENERATED_RESPONSE="$response"
     
-    log "PR description generated: $OUTFILE"
+    if [[ "$OUTPUT_TO_STDOUT" == "true" ]]; then
+        # Don't output here if validation is enabled - let validate function handle it
+        if [[ "$VALIDATE_MODE" != "true" ]]; then
+            printf "%s\n" "$response"
+        fi
+        log "PR description generated"
+    else
+        printf "%s\n" "$response" > "$OUTFILE"
+        log "PR description generated: $OUTFILE"
+    fi
+    
+    rm -f "$prompt_file"
 }
 
 validate_pr_description() {
@@ -169,7 +193,7 @@ validate_pr_description() {
     {
         cat "${PROMPTS_DIR}/pr-validation.txt"
         echo ""
-        cat "$OUTFILE"
+        printf "%s\n" "$GENERATED_RESPONSE"
     } > "$temp_input"
     
     # Execute validation
@@ -179,11 +203,15 @@ validate_pr_description() {
     local validated_response
     validated_response="$("${cmd_array[@]}" < "$temp_input")"
     
-    # Overwrite original file with validated version
-    printf "%s\n" "$validated_response" > "$OUTFILE"
+    if [[ "$OUTPUT_TO_STDOUT" == "true" ]]; then
+        printf "%s\n" "$validated_response"
+        log "PR description validated and output to stdout"
+    else
+        printf "%s\n" "$validated_response" > "$OUTFILE"
+        log "PR description validated and updated: $OUTFILE"
+    fi
     
     rm -f "$temp_input" "$temp_output"
-    log "PR description validated and updated: $OUTFILE"
 }
 
 cleanup() {
@@ -204,7 +232,12 @@ main() {
     validate_pr_description
     
     log "✅ Process completed successfully!"
-    log "Output file: $OUTFILE"
+    
+    if [[ "$OUTPUT_TO_STDOUT" == "true" ]]; then
+        log "Output sent to stdout (terminal)"
+    else
+        log "Output file: $OUTFILE"
+    fi
     
     if [[ "$VALIDATE_MODE" == "true" ]]; then
         log "Note: Validation was applied"
