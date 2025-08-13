@@ -13,12 +13,14 @@ set -euo pipefail
 # ================================================
 
 # Default configuration
-MODEL="${MODEL:-llama3.1}"
+#MODEL="${MODEL:-llama3.1}"
 #VALIDATOR_MODEL="${VALIDATOR_MODEL:-qwen2.5:7b}"
-VALIDATOR_MODEL="${VALIDATOR_MODEL:-llama3.1}"
+MODEL="${MODEL:-deepseek-r1}"
+VALIDATOR_MODEL="${VALIDATOR_MODEL:-deepseek-r1}"
 OUTFILE=""
 OUTPUT_TO_STDOUT=true
-MAX_DIFF_LINES="${MAX_DIFF_LINES:-4000}"
+MAX_DIFF_LINES="${MAX_DIFF_LINES:-5000}"
+TEMPERATURE="${TEMPERATURE:-0.4}"
 NUM_CTX="${NUM_CTX:-8192}"
 
 # Directories
@@ -57,6 +59,7 @@ while [[ $# -gt 0 ]]; do
       echo "  VALIDATOR_MODEL       Validation LLM model (default: llama3.1)"
       echo "  MAX_DIFF_LINES       Max diff lines to process (default: 4000)"
       echo "  NUM_CTX              Context window size (default: 8192)"
+      echo "  TEMPERATURE      Model temperature for conciseness (default: 0.4)"
       exit 0
       ;;
     *)
@@ -125,9 +128,13 @@ build_ollama_command() {
     if ollama --help 2>/dev/null | grep -q -- '--num_ctx'; then
         cmd+=(--num_ctx "$NUM_CTX")
     fi
-    cmd+=("$model")
+    if ollama --help 2>/dev/null | grep -q -- '--temperature'; then
+        cmd+=(--temperature "$TEMPERATURE")
+    fi
     
-    printf '%s\n' "${cmd[@]}"
+    cmd="$cmd $model"
+    
+    echo "$cmd"
 }
 
 generate_pr_description() {
