@@ -13,12 +13,13 @@ set -euo pipefail
 # ================================================
 
 # Default configuration
-MODEL="${MODEL:-deepseek-r1}"
+MODEL="${MODEL:-qwen2.5:7b}"
 NUM_CTX="${NUM_CTX:-32768}"
 MAX_DIFF_LINES="${MAX_DIFF_LINES:-5000}"
 TEMPERATURE="${TEMPERATURE:-0.4}"
 NEW_BRANCH=""
 DRY_RUN=false
+VERBOSE=false
 
 # Directories
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -39,18 +40,23 @@ while [[ $# -gt 0 ]]; do
       DRY_RUN=true
       shift
       ;;
+    --verbose|-v)
+      VERBOSE=true
+      shift
+      ;;
     --help|-h)
-      echo "Usage: $0 [--branch BRANCH_NAME] [--dry-run] [--help]"
+      echo "Usage: $0 [--branch BRANCH_NAME] [--dry-run] [--verbose] [--help]"
       echo ""
       echo "Stages all changes and generates an AI commit message."
       echo ""
       echo "Options:"
       echo "  --branch, -b     Create and switch to new branch before staging"
       echo "  --dry-run, -d    Show what would be done without making changes"
+      echo "  --verbose, -v    Show detailed LLM execution information"
       echo "  --help, -h       Show this help message"
       echo ""
       echo "Environment variables:"
-      echo "  MODEL            LLM model for commit message generation (default: deepseek-r1)"
+      echo "  MODEL            LLM model for commit message generation (default: qwen2.5:7b)"
       echo "  MAX_DIFF_LINES   Max diff lines to process (default: 5000)"
       echo "  NUM_CTX          Context window size (default: 32768)"
       echo "  TEMPERATURE      Model temperature for conciseness (default: 0.4)"
@@ -199,6 +205,13 @@ generate_commit_message() {
     
     log "Created temp prompt file: ${temp_prompt_file}"
     
+    if [[ "$VERBOSE" == "true" ]]; then
+        log "Verbose mode: showing prompt content preview"
+        echo "----------------------------------------"
+        echo "PROMPT PREVIEW (first 20 lines):"
+        echo "----------------------------------------"
+    fi
+    
     # Build the complete prompt with the template, files status, and diff
     {
         echo "$prompt_template"
@@ -210,24 +223,52 @@ generate_commit_message() {
         echo "$git_diff"
     } > "$temp_prompt_file"
     
+    if [[ "$VERBOSE" == "true" ]]; then
+        head -n 20 "$temp_prompt_file"
+        echo "----------------------------------------"
+        local total_lines
+        total_lines=$(wc -l < "$temp_prompt_file")
+        log "Total prompt lines: $total_lines"
+    fi
+    
+    # Build ollama command first
+    local ollama_cmd_str
+    ollama_cmd_str="$(build_ollama_command "$MODEL")"
+    
     log "Running command: ollama run $MODEL"
     log "Executing LLM with prompt..."
+    
+    if [[ "$VERBOSE" == "true" ]]; then
+        log "Full ollama command: $ollama_cmd_str"
+        log "Prompt file location: $temp_prompt_file"
+        log "Model: $MODEL | Context: $NUM_CTX | Temperature: $TEMPERATURE"
+    fi
     
     # Try LLM with the complete prompt
     local response=""
     local llm_success=false
     
-    # Build and execute ollama command
-    local ollama_cmd_str
-    ollama_cmd_str="$(build_ollama_command "$MODEL")"
-    
     # Execute with error handling
-    if response="$(cat "$temp_prompt_file" | $ollama_cmd_str 2>/dev/null)"; then
-        llm_success=true
-        log "LLM response received"
+    if [[ "$VERBOSE" == "true" ]]; then
+        log "Starting LLM execution (verbose mode - showing real-time output)..."
+        echo "======== LLM OUTPUT START ========"
+        if response="$(cat "$temp_prompt_file" | $ollama_cmd_str)"; then
+            llm_success=true
+            echo "======== LLM OUTPUT END ========"
+            log "LLM response received successfully"
+        else
+            echo "======== LLM OUTPUT END (FAILED) ========"
+            log "LLM execution failed, using fallback"
+            llm_success=false
+        fi
     else
-        log "LLM execution failed, using fallback"
-        llm_success=false
+        if response="$(cat "$temp_prompt_file" | $ollama_cmd_str 2>/dev/null)"; then
+            llm_success=true
+            log "LLM response received"
+        else
+            log "LLM execution failed, using fallback"
+            llm_success=false
+        fi
     fi
     
     # Clean up temp file
@@ -358,5 +399,11 @@ main() {
     log "✅ Process completed successfully!"
 }
 
-# Run main function
+
+# ========================================
+# Main Execution
+# ========================================
+
 main "$@"
+
+
