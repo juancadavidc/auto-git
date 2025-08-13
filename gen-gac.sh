@@ -319,12 +319,6 @@ show_commit_preview() {
         return 0
     fi
     
-    if [[ "$DRY_RUN" != "true" ]]; then
-        echo "Staged changes summary:"
-        git diff --cached --stat
-        echo ""
-    fi
-    
     read -p "Commit with this message? (y/N): " -n 1 -r
     echo
     if [[ $REPLY =~ ^[Yy]$ ]]; then
