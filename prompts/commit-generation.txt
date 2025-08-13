@@ -21,8 +21,8 @@ ci: continuous integration
 build: build system
 
 EXAMPLES:
-- feat(auth): add OAuth2 support
-- fix(api): handle null pointer
-- docs: update install guide
-- refactor: simplify query logic
-- chore: update dependencies
+- feat(auth): Add OAuth2 support
+- fix(api): Handle null pointer
+- docs: Update Install guide
+- refactor: Simplify query logic
+- chore: Update dependencies
