@@ -15,8 +15,8 @@ set -euo pipefail
 # Default configuration
 #MODEL="${MODEL:-llama3.1}"
 #VALIDATOR_MODEL="${VALIDATOR_MODEL:-qwen2.5:7b}"
-MODEL="${MODEL:-deepseek-r1}"
-VALIDATOR_MODEL="${VALIDATOR_MODEL:-deepseek-r1}"
+MODEL="${MODEL:-qwen2.5:7b}"
+VALIDATOR_MODEL="${VALIDATOR_MODEL:-qwen2.5:7b}"
 OUTFILE=""
 OUTPUT_TO_STDOUT=true
 MAX_DIFF_LINES="${MAX_DIFF_LINES:-5000}"
