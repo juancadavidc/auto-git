@@ -13,9 +13,10 @@ set -euo pipefail
 # ================================================
 
 # Default configuration
-MODEL="${MODEL:-llama3.1}"
-NUM_CTX="${NUM_CTX:-8192}"
-MAX_DIFF_LINES="${MAX_DIFF_LINES:-2000}"
+MODEL="${MODEL:-deepseek-r1}"
+NUM_CTX="${NUM_CTX:-32768}"
+MAX_DIFF_LINES="${MAX_DIFF_LINES:-5000}"
+TEMPERATURE="${TEMPERATURE:-0.4}"
 NEW_BRANCH=""
 DRY_RUN=false
 
@@ -49,9 +50,10 @@ while [[ $# -gt 0 ]]; do
       echo "  --help, -h       Show this help message"
       echo ""
       echo "Environment variables:"
-      echo "  MODEL            LLM model for commit message generation (default: llama3.1)"
-      echo "  MAX_DIFF_LINES   Max diff lines to process (default: 2000)"
-      echo "  NUM_CTX          Context window size (default: 8192)"
+      echo "  MODEL            LLM model for commit message generation (default: deepseek-r1)"
+      echo "  MAX_DIFF_LINES   Max diff lines to process (default: 5000)"
+      echo "  NUM_CTX          Context window size (default: 32768)"
+      echo "  TEMPERATURE      Model temperature for conciseness (default: 0.4)"
       exit 0
       ;;
     *)
@@ -159,6 +161,9 @@ build_ollama_command() {
     
     if ollama --help 2>/dev/null | grep -q -- '--num_ctx'; then
         cmd="$cmd --num_ctx $NUM_CTX"
+    fi
+    if ollama --help 2>/dev/null | grep -q -- '--temperature'; then
+        cmd="$cmd --temperature $TEMPERATURE"
     fi
     cmd="$cmd $model"
     
