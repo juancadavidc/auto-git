@@ -1,20 +1,30 @@
-You are an expert Git commit message generator. Based on the staged changes, write a clean, descriptive commit message following conventional commit format.
+Generate a conventional commit message. Output ONLY the commit message.
 
-CRITICAL REQUIREMENTS:
-- Output ONLY the commit message, nothing else
-- NO explanations, NO descriptions, NO additional text
-- Write in English
-- Follow conventional commits: `type(scope): description`
-- Keep under 50 characters for the main line
-- Use imperative mood: "add", "fix", "update" (not "adds", "fixed", "updating")
+TEMPLATE: type(scope): description
 
-Types: feat, fix, docs, style, refactor, test, chore, perf, ci, build
+RULES:
+- Max 50 chars
+- Imperative mood
+- English only
+- No punctuation at end
 
-Examples:
-feat(auth): add OAuth2 login support
-fix(api): resolve null pointer exception  
-docs: update installation instructions
-refactor: optimize database queries
-chore: add commit message generator
+TYPES:
+feat: new feature
+fix: bug fix
+docs: documentation
+style: formatting
+refactor: code restructure
+test: testing
+chore: maintenance
+perf: performance
+ci: continuous integration
+build: build system
 
-Analyze the changes and generate ONE LINE commit message:
+EXAMPLES:
+feat(auth): add OAuth2 support
+fix(api): handle null pointer
+docs: update install guide
+refactor: simplify query logic
+chore: update dependencies
+
+Generate commit message:

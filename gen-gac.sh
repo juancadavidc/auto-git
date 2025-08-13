@@ -155,70 +155,96 @@ get_staged_diff() {
 
 build_ollama_command() {
     local model="$1"
-    local cmd=(ollama run)
+    local cmd="ollama run"
     
     if ollama --help 2>/dev/null | grep -q -- '--num_ctx'; then
-        cmd+=(--num_ctx "$NUM_CTX")
+        cmd="$cmd --num_ctx $NUM_CTX"
     fi
-    cmd+=("$model")
+    cmd="$cmd $model"
     
-    printf '%s\n' "${cmd[@]}"
+    echo "$cmd"
 }
 
 generate_commit_message() {
     log "Generating commit message with ${MODEL}..."
     
-    # Get basic info about the changes
-    local files_changed
-    files_changed="$(git diff --cached --name-only | wc -l | tr -d ' ')"
+    # Load the prompt from the prompt file
+    local prompt_template
+    prompt_template="$(cat "${PROMPTS_DIR}/commit-generation.txt")"
     
-    local staged_summary
-    staged_summary="$(git diff --cached --stat | tail -n 1)"
+    # Get the git diff for staged changes
+    local git_diff
+    if [[ "$DRY_RUN" == "true" ]]; then
+        git_diff="$(git diff HEAD)"
+    else
+        git_diff="$(git diff --cached)"
+    fi
     
-    # Create a simpler, more focused prompt
-    local simple_prompt
-    simple_prompt="Generate a single line conventional commit message for these changes:
-
-Files changed: $files_changed
-Summary: $staged_summary
-
-Top changed files:
-$(git diff --cached --name-only | head -5)
-
-Rules: 
-- ONE line only
-- Format: type(scope): description  
-- Types: feat, fix, docs, style, refactor, test, chore
-- Max 50 chars
-- No explanations
-
-Commit message:"
+    # Get list of modified and added files
+    local files_status
+    if [[ "$DRY_RUN" == "true" ]]; then
+        files_status="$(git status --porcelain)"
+    else
+        files_status="$(git diff --cached --name-status)"
+    fi
     
-    log "Executing LLM with simplified prompt..."
+    # Create temp file for the complete prompt
+    local temp_prompt_file
+    temp_prompt_file="$(mktemp "/tmp/commit_prompt.XXXXXX")"
     
-    # Try LLM with timeout, but have fallback ready
+    log "Created temp prompt file: ${temp_prompt_file}"
+    
+    # Build the complete prompt with the template, files status, and diff
+    {
+        echo "$prompt_template"
+        echo ""
+        echo "FILES MODIFIED/ADDED:"
+        echo "$files_status"
+        echo ""
+        echo "GIT DIFF:"
+        echo "$git_diff"
+    } > "$temp_prompt_file"
+    
+    log "Running command: ollama run $MODEL"
+    log "Executing LLM with prompt..."
+    
+    # Try LLM with the complete prompt
     local response=""
     local llm_success=false
     
-    # Try to get LLM response with timeout simulation
-    if command -v gtimeout >/dev/null 2>&1; then
-        response="$(echo "$simple_prompt" | gtimeout 15s ollama run "$MODEL" 2>/dev/null | head -n 1)" && llm_success=true
-    elif response="$(echo "$simple_prompt" | ollama run "$MODEL" 2>/dev/null | head -n 1)"; then
+    # Build and execute ollama command
+    local ollama_cmd_str
+    ollama_cmd_str="$(build_ollama_command "$MODEL")"
+    
+    # Execute with error handling
+    if response="$(cat "$temp_prompt_file" | $ollama_cmd_str 2>/dev/null)"; then
         llm_success=true
+        log "LLM response received"
+    else
+        log "LLM execution failed, using fallback"
+        llm_success=false
     fi
     
+    # Clean up temp file
+    rm -f "$temp_prompt_file"
+    
     if [[ "$llm_success" == "true" && -n "$response" ]]; then
-        log "LLM response received: '$response'"
-        # Clean up response and extract commit message
+        # Extract the first line that looks like a conventional commit
         COMMIT_MESSAGE="$(echo "$response" | grep -E '^[a-z]+(\([^)]+\))?: .+' | head -n 1)"
+        if [[ -z "$COMMIT_MESSAGE" ]]; then
+            # If no conventional format found, take the first non-empty line
+            COMMIT_MESSAGE="$(echo "$response" | grep -v '^[[:space:]]*$' | head -n 1)"
+        fi
     else
-        log "LLM did not respond in time or failed, using fallback"
+        log "LLM did not respond or failed, using fallback"
         COMMIT_MESSAGE=""
     fi
     
     # If no conventional format found, create a smart fallback
     if [[ -z "$COMMIT_MESSAGE" ]]; then
         log "Creating intelligent fallback commit message..."
+
+        
         
         # Analyze the changes to determine type and description
         local change_type="chore"
@@ -275,8 +301,8 @@ Commit message:"
         log "Generated fallback commit message: $COMMIT_MESSAGE"
     fi
     
-    # Final cleanup
-    COMMIT_MESSAGE="$(echo "$COMMIT_MESSAGE" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//' | cut -c1-50)"
+    # Final cleanup - trim whitespace but allow up to 72 characters
+    COMMIT_MESSAGE="$(echo "$COMMIT_MESSAGE" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//' | cut -c1-72)"
 }
 
 show_commit_preview() {
