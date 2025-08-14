@@ -132,9 +132,9 @@ build_ollama_command() {
         cmd+=(--temperature "$TEMPERATURE")
     fi
     
-    cmd="$cmd $model"
+    cmd+=("$model")
     
-    echo "$cmd"
+    printf '%s\n' "${cmd[@]}"
 }
 
 generate_pr_description() {
