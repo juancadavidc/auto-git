@@ -19,12 +19,4 @@ The _bare-minimum_ description should have the following parts:
 ### Type of change
 
 You should describe here what type of change are you trying to merge. Is it a bugfix? A new feature? Adding more tests?
-A reviewer should know this by reading your description alone, without needing to open the JIRA ticket and grasp the context about it. You need to select one or more of the next labels in this PR:
-
-**This PR contains a:**
-
-- [ ] Bug fix (non-breaking change which fixes an issue)
-- [ ] New feature (non-breaking change which adds functionality)
-- [ ] Breaking change (fix or feature that would cause existing functionality to not work as expected)
-- [ ] Non-functional feature (if the PR contains changes in: swagger, readme, config)
-
+A reviewer should know this by reading your description alone, without needing to open the JIRA ticket and grasp the context about it. 
