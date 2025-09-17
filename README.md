@@ -1,157 +1,157 @@
 # Auto PR Desc
 
-🤖 Generador automático de descripciones de Pull Request usando IA local con Ollama.
+🤖 Automatic Pull Request description generator using local AI with Ollama.
 
-## 📋 Descripción
+## 📋 Description
 
-Auto PR Desc es una herramienta que utiliza modelos de IA locales (vía Ollama) para generar automáticamente descripciones estructuradas y profesionales de Pull Requests en español. La herramienta analiza los cambios en tu rama actual comparándolos con `origin/main` y genera una descripción completa siguiendo una plantilla estándar.
+Auto PR Desc is a tool that uses local AI models (via Ollama) to automatically generate structured and professional Pull Request descriptions. The tool analyzes changes in your current branch by comparing them with `origin/main` and generates a complete description following a standard template.
 
-### ✨ Características principales
+### ✨ Key Features
 
-- 🚀 **Generación automática**: Analiza diffs de Git y genera descripciones profesionales
-- 🔍 **Validación opcional**: Segundo modelo de IA para revisar y mejorar la calidad
-- 📁 **Prompts externos**: Archivos de configuración separados para fácil mantenimiento
-- 🎯 **Plantilla estándar**: Sigue formato consistente para PRs empresariales
-- ⚙️ **Configurable**: Variables de entorno y opciones de línea de comandos
-- 🌐 **Local**: Utiliza Ollama para mantener todo en tu máquina
+- 🚀 **Automatic generation**: Analyzes Git diffs and generates professional descriptions
+- 🔍 **Optional validation**: Second AI model to review and improve quality
+- 📁 **External prompts**: Separate configuration files for easy maintenance
+- 🎯 **Standard template**: Follows consistent format for enterprise PRs
+- ⚙️ **Configurable**: Environment variables and command line options
+- 🌐 **Local**: Uses Ollama to keep everything on your machine
 
-## 🛠️ Prerequisitos
+## 🛠️ Prerequisites
 
-### Software requerido
+### Required Software
 
-- **Git**: Para análisis de cambios y repositorio
-- **Ollama**: Para ejecutar modelos de IA localmente
-- **Bash**: Shell compatible (Linux/macOS/WSL)
+- **Git**: For change analysis and repository management
+- **Ollama**: To run AI models locally
+- **Bash**: Compatible shell (Linux/macOS/WSL)
 
-### Modelos de Ollama
+### Ollama Models
 
-Instala los modelos requeridos:
+Install the required models:
 
 ```bash
-# Modelo principal (recomendado)
+# Main model (recommended)
 ollama pull llama3.1
 
-# Modelo de validación (opcional)
+# Validation model (optional)
 ollama pull qwen2.5:7b
 ```
 
-## 📦 Instalación
+## 📦 Installation
 
-1. **Clona el repositorio:**
+1. **Clone the repository:**
    ```bash
-   git clone https://github.com/tu-usuario/auto-pr-desc.git
+   git clone https://github.com/your-username/auto-pr-desc.git
    cd auto-pr-desc
    ```
 
-2. **Hacer ejecutable el script:**
+2. **Make the script executable:**
    ```bash
    chmod +x gen-pr-desc.sh
    ```
 
-3. **Opcional - Agregar al PATH:**
+3. **Optional - Add to PATH:**
    ```bash
-   # Agregar a tu ~/.bashrc o ~/.zshrc
-   export PATH="$PATH:/ruta/a/auto-pr-desc"
+   # Add to your ~/.bashrc or ~/.zshrc
+   export PATH="$PATH:/path/to/auto-pr-desc"
    ```
 
-## 🚀 Uso
+## 🚀 Usage
 
-### Uso básico
+### Basic Usage
 
 ```bash
-# Generar descripción básica
+# Generate basic description
 ./gen-pr-desc.sh
 
-# Especificar archivo de salida
-./gen-pr-desc.sh mi-pr-descripcion.md
+# Specify output file
+./gen-pr-desc.sh my-pr-description.md
 
-# Generar con validación
+# Generate with validation
 ./gen-pr-desc.sh --validate
 ```
 
-### Opciones disponibles
+### Available Options
 
 ```bash
-./gen-pr-desc.sh [ARCHIVO_SALIDA] [--validate] [--help]
+./gen-pr-desc.sh [OUTPUT_FILE] [--validate] [--help]
 ```
 
-- `ARCHIVO_SALIDA`: Nombre del archivo de salida (por defecto: `PR_DESCRIPTION.md`)
-- `--validate`: Habilita el paso de validación con segundo modelo
-- `--help, -h`: Muestra ayuda completa
+- `OUTPUT_FILE`: Output file name (default: `PR_DESCRIPTION.md`)
+- `--validate`: Enables validation step with second model
+- `--help, -h`: Shows complete help
 
-### Variables de entorno
+### Environment Variables
 
 ```bash
-# Modelo principal
+# Main model
 export MODEL="llama3.1"
 
-# Modelo de validación  
+# Validation model  
 export VALIDATOR_MODEL="qwen2.5:7b"
 
-# Límite de líneas del diff
+# Diff lines limit
 export MAX_DIFF_LINES=4000
 
-# Tamaño de ventana de contexto
+# Context window size
 export NUM_CTX=8192
 ```
 
-## 📋 Ejemplo de flujo de trabajo
+## 📋 Workflow Example
 
-1. **Hacer cambios en tu rama:**
+1. **Make changes to your branch:**
    ```bash
-   git checkout -b feature/nueva-funcionalidad
-   # ... hacer cambios ...
+   git checkout -b feature/new-functionality
+   # ... make changes ...
    git add .
-   git commit -m "Implementar nueva funcionalidad"
+   git commit -m "Implement new functionality"
    ```
 
-2. **Generar descripción del PR:**
+2. **Generate PR description:**
    ```bash
    ./gen-pr-desc.sh --validate
    ```
 
-3. **Revisar y usar la descripción:**
+3. **Review and use the description:**
    ```bash
    cat PR_DESCRIPTION.md
-   # Copiar contenido para usar en GitHub/GitLab
+   # Copy content to use in GitHub/GitLab
    ```
 
-## 📁 Estructura del proyecto
+## 📁 Project Structure
 
 ```
 auto-pr-desc/
-├── gen-pr-desc.sh              # Script principal mejorado
-├── gen-pr-desc-original.sh     # Respaldo de versión original
+├── gen-pr-desc.sh              # Enhanced main script
+├── gen-pr-desc-original.sh     # Backup of original version
 ├── prompts/
-│   ├── pr-generation.txt       # Prompt para generación principal
-│   └── pr-validation.txt       # Prompt para validación
-└── README.md                   # Documentación del proyecto
+│   ├── pr-generation.txt       # Prompt for main generation
+│   └── pr-validation.txt       # Prompt for validation
+└── README.md                   # Project documentation
 ```
 
-## ⚙️ Configuración avanzada
+## ⚙️ Advanced Configuration
 
-### Personalizar prompts
+### Customize Prompts
 
-Los archivos en `prompts/` se pueden modificar para adaptar el estilo y formato de las descripciones generadas:
+Files in `prompts/` can be modified to adapt the style and format of generated descriptions:
 
-- **`pr-generation.txt`**: Controla cómo se genera la descripción inicial
-- **`pr-validation.txt`**: Define cómo se valida y mejora la descripción
+- **`pr-generation.txt`**: Controls how the initial description is generated
+- **`pr-validation.txt`**: Defines how the description is validated and improved
 
-### Modelos alternativos
+### Alternative Models
 
-Puedes usar diferentes modelos de Ollama según tus necesidades:
+You can use different Ollama models according to your needs:
 
 ```bash
-# Modelos más ligeros
+# Lighter models
 export MODEL="llama3.1:8b"
 export VALIDATOR_MODEL="llama3.1:8b"
 
-# Modelos más potentes (requieren más RAM)
+# More powerful models (require more RAM)
 export MODEL="llama3.1:70b" 
 export VALIDATOR_MODEL="llama3.1:70b"
 ```
 
-## 🐛 Solución de problemas
+## 🐛 Troubleshooting
 
 ### Error: "git is not installed"
 ```bash
@@ -164,52 +164,52 @@ brew install git
 
 ### Error: "ollama is not installed"
 ```bash
-# Instalar Ollama
+# Install Ollama
 curl -fsSL https://ollama.ai/install.sh | sh
 
-# Verificar instalación
+# Verify installation
 ollama --version
 ```
 
 ### Error: "not inside a git repository"
 ```bash
-# Inicializar repositorio si es necesario
+# Initialize repository if needed
 git init
-git remote add origin <tu-repositorio>
+git remote add origin <your-repository>
 ```
 
-### Diff muy grande
-Si el diff es muy extenso, ajusta el límite:
+### Very large diff
+If the diff is too extensive, adjust the limit:
 ```bash
 export MAX_DIFF_LINES=8000
 ./gen-pr-desc.sh
 ```
 
-## 🤝 Contribuir
+## 🤝 Contributing
 
-1. Fork el proyecto
-2. Crea una rama para tu feature (`git checkout -b feature/AmazingFeature`)
-3. Commit tus cambios (`git commit -m 'Add some AmazingFeature'`)
-4. Push a la rama (`git push origin feature/AmazingFeature`)
-5. Abre un Pull Request
+1. Fork the project
+2. Create a branch for your feature (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
 
-## 📄 Licencia
+## 📄 License
 
-Este proyecto está bajo la Licencia MIT. Ver el archivo `LICENSE` para más detalles.
+This project is under the MIT License. See the `LICENSE` file for more details.
 
-## 🙏 Agradecimientos
+## 🙏 Acknowledgments
 
-- [Ollama](https://ollama.ai/) por proporcionar una forma fácil de ejecutar modelos de IA localmente
-- Comunidad de desarrolladores que contribuye a mejorar las herramientas de desarrollo
+- [Ollama](https://ollama.ai/) for providing an easy way to run AI models locally
+- Developer community that contributes to improving development tools
 
-## 📞 Soporte
+## 📞 Support
 
-Si encuentras algún problema o tienes sugerencias:
+If you encounter any problems or have suggestions:
 
-1. Revisa los [Issues existentes](../../issues)
-2. Crea un [Nuevo Issue](../../issues/new) con detalles del problema
-3. Incluye información de tu sistema y versiones de software
+1. Check [existing Issues](../../issues)
+2. Create a [New Issue](../../issues/new) with problem details
+3. Include your system information and software versions
 
 ---
 
-**¿Te gusta el proyecto? ⭐ Dale una estrella en GitHub!**
+**Like the project? ⭐ Give it a star on GitHub!**
