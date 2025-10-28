@@ -204,6 +204,7 @@ gitai pr      # Works here too!
 └── teams/
     ├── frontend.yaml         # Team-specific config
     └── backend.yaml
+    --- cloudprovider.yaml
 
 # Project-specific overrides (optional)
 ~/projects/specific-app/
