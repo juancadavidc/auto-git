@@ -1,0 +1,36 @@
+# GitAI Configuration with OpenAI as primary provider
+
+providers:
+  openai:
+    name: openai
+    enabled: true
+    priority: 1
+    config: {}
+
+  ollama:
+    name: ollama  
+    enabled: true
+    priority: 2
+    config: {}
+
+# OpenAI-specific configuration
+openai:
+  api_key: "your-openai-api-key-here"  # Or set OPENAI_API_KEY env var
+  model: "gpt-3.5-turbo"               # or "gpt-4", "gpt-4-turbo"
+  base_url: "https://api.openai.com/v1"
+  timeout: 30
+  temperature: 0.3
+  max_tokens: 1000
+
+# Template configuration
+templates:
+  default_commit_template: conventional
+  default_pr_template: github
+
+# Ollama fallback configuration  
+ollama:
+  base_url: "http://localhost:11434"
+  model: "qwen2.5:7b"
+  timeout: 30
+  temperature: 0.3
+  max_tokens: 1000

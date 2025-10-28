@@ -1,0 +1,32 @@
+{# Conventional Commits format template #}
+{# description: Generates commit messages following Conventional Commits specification #}
+{# variables: changes, repository, user #}
+
+{%- macro get_change_type(changes) -%}
+{%- if changes.is_feature %}feat{% elif changes.is_fix %}fix{% elif changes.is_refactor %}refactor{% elif changes.is_docs %}docs{% elif changes.is_test %}test{% else %}chore{% endif -%}
+{%- endmacro -%}
+
+{%- macro format_file_list(files, max_files=5) -%}
+{%- for file in files[:max_files] -%}
+{{ file.path }}
+{%- if not loop.last %}, {% endif -%}
+{%- endfor -%}
+{%- if files|length > max_files %} (+{{ files|length - max_files }} more){% endif -%}
+{%- endmacro -%}
+
+{{ get_change_type(changes) }}{% if changes.scope %}({{ changes.scope }}){% endif %}{% if changes.breaking_change %}!{% endif %}: {{ changes.summary|capitalize_first }}
+
+{%- if changes.breaking_change %}
+
+BREAKING CHANGE: {{ changes.breaking_change }}
+{%- endif %}
+
+{%- if changes.body %}
+
+{{ changes.body }}
+{%- endif %}
+
+{%- if changes.affected_files %}
+
+Files: {{ format_file_list(changes.affected_files) }}
+{%- endif %}
