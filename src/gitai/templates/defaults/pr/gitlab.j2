@@ -1,0 +1,76 @@
+{# GitLab merge request template #}
+{# description: Generates MR descriptions formatted for GitLab #}
+{# variables: changes, repository, user, base_branch, head_branch #}
+{% extends "../base.j2" %}
+
+{% block content -%}
+## What does this MR do?
+
+{{ changes.summary|capitalize_first }}
+
+{%- if changes.body %}
+
+{{ changes.body }}
+{%- endif %}
+
+## Related issues
+
+{%- if changes.related_issues %}
+{%- for issue in changes.related_issues %}
+- Closes {{ issue }}
+{%- endfor %}
+{%- else %}
+<!-- Link any related issues here -->
+{%- endif %}
+
+## How to set up and validate locally
+
+1. Check out this branch
+2. Run the application
+3. Verify the changes work as expected
+
+{%- if changes.test_files %}
+
+## Tests
+
+Updated test files:
+{%- for file in changes.test_files %}
+- `{{ file.path }}`
+{%- endfor %}
+{%- endif %}
+
+## Changes
+
+{%- if changes.affected_files %}
+
+<details>
+<summary>Modified files ({{ changes.affected_files|length }})</summary>
+
+{%- for file in changes.affected_files %}
+- `{{ file.path }}` ({{ file.change_type or 'modified' }})
+{%- endfor %}
+
+</details>
+{%- endif %}
+
+{%- if changes.breaking_change %}
+
+## ⚠️ Breaking changes
+
+{{ changes.breaking_change }}
+{%- endif %}
+
+## Checklist
+
+- [ ] Tests added for new functionality
+- [ ] Documentation updated
+- [ ] Changelog updated (if applicable)
+- [ ] Code review completed
+- [ ] Ready for merge
+
+{%- if changes.lines_added or changes.lines_deleted %}
+
+---
+`+{{ changes.lines_added or 0 }} -{{ changes.lines_deleted or 0 }}` lines
+{%- endif %}
+{%- endblock %}

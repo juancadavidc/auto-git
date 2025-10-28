@@ -1,0 +1,78 @@
+{# Standard pull request template #}
+{# description: Generic PR description template for any platform #}
+{# variables: changes, repository, user, base_branch, head_branch #}
+{% extends "../base.j2" %}
+
+{% block content -%}
+# {{ changes.summary|capitalize_first }}
+
+{%- if changes.body %}
+
+## Description
+
+{{ changes.body }}
+{%- endif %}
+
+## Type of Change
+
+{%- if changes.is_feature %}
+- [x] New feature
+{%- elif changes.is_fix %}
+- [x] Bug fix
+{%- elif changes.is_refactor %}
+- [x] Code refactoring
+{%- elif changes.is_docs %}
+- [x] Documentation update
+{%- elif changes.is_test %}
+- [x] Test update
+{%- else %}
+- [x] Other ({{ get_change_type(changes) }})
+{%- endif %}
+
+{%- if changes.breaking_change %}
+- [x] Breaking change
+{%- endif %}
+
+{%- if changes.affected_files %}
+
+## Files Changed
+
+{{ format_change_summary(changes) }}
+
+{%- for file in changes.affected_files %}
+- `{{ file.path }}`
+{%- endfor %}
+{%- endif %}
+
+{%- if changes.breaking_change %}
+
+## Breaking Changes
+
+{{ changes.breaking_change }}
+{%- endif %}
+
+## Testing
+
+{%- if changes.test_files %}
+Tests have been updated in:
+{%- for file in changes.test_files %}
+- `{{ file.path }}`
+{%- endfor %}
+{%- else %}
+- Tests should be added for this change
+{%- endif %}
+
+## Additional Notes
+
+{%- if changes.rationale %}
+{{ changes.rationale }}
+{%- else %}
+None
+{%- endif %}
+
+{%- if changes.lines_added or changes.lines_deleted %}
+
+---
+*{{ format_change_summary(changes) }} • +{{ changes.lines_added or 0 }}/-{{ changes.lines_deleted or 0 }} lines*
+{%- endif %}
+{%- endblock %}
