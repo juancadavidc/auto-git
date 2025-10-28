@@ -1,0 +1,50 @@
+# GitAI Configuration with multiple providers and fallbacks
+
+providers:
+  # Primary: Claude (best quality)
+  anthropic:
+    name: anthropic
+    enabled: true
+    priority: 3
+    config: {}
+
+  # Secondary: OpenAI (good balance)
+  openai:
+    name: openai
+    enabled: true
+    priority: 2
+    config: {}
+
+  # Fallback: Ollama (local, always available)
+  ollama:
+    name: ollama
+    enabled: true
+    priority: 1
+    config: {}
+
+# Provider-specific configurations
+anthropic:
+  api_key: "your-anthropic-api-key"
+  model: "claude-3-sonnet-20240229"  # Balanced model
+  timeout: 30
+  temperature: 0.7
+  max_tokens: 1000
+
+openai:
+  api_key: "your-openai-api-key"
+  model: "gpt-4-turbo-preview"       # Latest GPT-4
+  timeout: 30
+  temperature: 0.7
+  max_tokens: 1000
+
+ollama:
+  base_url: "http://localhost:11434"
+  model: "qwen2.5:7b"
+  timeout: 30
+  temperature: 0.7
+  max_tokens: 1000
+
+# Template configuration
+templates:
+  default_commit_template: conventional
+  default_pr_template: github

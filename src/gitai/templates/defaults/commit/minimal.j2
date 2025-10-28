@@ -1,0 +1,9 @@
+{# Minimal commit message template #}
+{# description: Generates short, concise commit messages #}
+{# variables: changes, repository, user #}
+{% extends "../base.j2" %}
+
+{% block content -%}
+{{ changes.summary|capitalize_first }}
+{%- if changes.affected_files|length <= 3 %} ({{ format_file_list(changes.affected_files) }}){% endif %}
+{%- endblock %}

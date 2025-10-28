@@ -1,0 +1,81 @@
+{# GitHub pull request template #}
+{# description: Generates PR descriptions formatted for GitHub #}
+{# variables: changes, repository, user, base_branch, head_branch #}
+
+Generate a GitHub-style pull request description for the following changes:
+
+Files changed: {{ changes.affected_files|length }}
+Lines added: {{ changes.lines_added }}
+Lines removed: {{ changes.lines_deleted }}
+
+Change summary: {{ changes.summary }}
+
+Use the following format:
+## Summary
+
+{{ changes.summary }}
+
+{%- if changes.body %}
+
+{{ changes.body }}
+{%- endif %}
+
+## Changes
+
+{%- if changes.added_files %}
+
+### ➕ Added Files
+{%- for file in changes.added_files %}
+- `{{ file.path }}`{% if file.description %} - {{ file.description }}{% endif %}
+{%- endfor %}
+{%- endif %}
+
+{%- if changes.modified_files %}
+
+### ✏️ Modified Files
+{%- for file in changes.modified_files %}
+- `{{ file.path }}`{% if file.description %} - {{ file.description }}{% endif %}
+{%- endfor %}
+{%- endif %}
+
+{%- if changes.deleted_files %}
+
+### ❌ Deleted Files
+{%- for file in changes.deleted_files %}
+- `{{ file.path }}`{% if file.description %} - {{ file.description }}{% endif %}
+{%- endfor %}
+{%- endif %}
+
+{%- if changes.breaking_change %}
+
+## ⚠️ Breaking Changes
+
+{{ changes.breaking_change }}
+{%- endif %}
+
+## Testing
+
+{%- if changes.test_files %}
+- Updated tests in:
+{%- for file in changes.test_files %}
+  - `{{ file.path }}`
+{%- endfor %}
+{%- else %}
+- [ ] Add tests for new functionality
+- [ ] Verify existing tests pass
+{%- endif %}
+- [ ] Manual testing completed
+
+## Checklist
+
+- [ ] Code follows project style guidelines
+- [ ] Self-review completed
+- [ ] Tests added/updated for changes
+- [ ] Documentation updated if needed
+- [ ] No breaking changes (or clearly documented)
+
+{%- if changes.lines_added or changes.lines_deleted %}
+
+---
+**Stats**: +{{ changes.lines_added or 0 }} -{{ changes.lines_deleted or 0 }} lines in {{ changes.affected_files|length }} files
+{%- endif %}
