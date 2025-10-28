@@ -1,0 +1,38 @@
+# GitAI Configuration with Claude (Anthropic) as primary provider
+
+providers:
+  anthropic:
+    name: anthropic
+    enabled: true
+    priority: 1
+    config: {}
+
+  ollama:
+    name: ollama
+    enabled: true
+    priority: 2
+    config: {}
+
+# Anthropic (Claude) specific configuration
+anthropic:
+  api_key: "your-anthropic-api-key-here"  # Or set ANTHROPIC_API_KEY env var
+  model: "claude-3-haiku-20240307"        # Fast and affordable
+  # model: "claude-3-sonnet-20240229"     # Balanced performance
+  # model: "claude-3-opus-20240229"       # Most capable
+  base_url: "https://api.anthropic.com/v1"
+  timeout: 30
+  temperature: 0.7
+  max_tokens: 1000
+
+# Template configuration
+templates:
+  default_commit_template: conventional
+  default_pr_template: github
+
+# Ollama fallback configuration
+ollama:
+  base_url: "http://localhost:11434"
+  model: "qwen2.5:7b"
+  timeout: 30
+  temperature: 0.7
+  max_tokens: 1000

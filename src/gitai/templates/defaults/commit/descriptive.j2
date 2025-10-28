@@ -1,0 +1,31 @@
+{# Descriptive commit message template #}
+{# description: Generates detailed, descriptive commit messages #}
+{# variables: changes, repository, user #}
+{% extends "../base.j2" %}
+
+{% block content -%}
+{{ changes.summary|capitalize_first }}
+
+{%- if changes.body %}
+
+{{ changes.body }}
+{%- endif %}
+
+{%- if changes.rationale %}
+
+Why: {{ changes.rationale }}
+{%- endif %}
+
+{%- if changes.affected_files %}
+
+Modified files:
+{%- for file in changes.affected_files %}
+  - {{ file.path }}{% if file.change_type %} ({{ file.change_type }}){% endif %}
+{%- endfor %}
+{%- endif %}
+
+{%- if changes.lines_added or changes.lines_deleted %}
+
+Changes: +{{ changes.lines_added or 0 }} -{{ changes.lines_deleted or 0 }} lines
+{%- endif %}
+{%- endblock %}

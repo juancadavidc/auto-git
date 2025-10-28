@@ -1,0 +1,28 @@
+{# Base template for inheritance #}
+{# variables: repository, user, timestamp #}
+{# This template provides common variables and macros for all templates #}
+
+{%- macro format_file_list(files, max_files=5) -%}
+{%- for file in files[:max_files] -%}
+{{ file.path }}
+{%- if not loop.last %}, {% endif -%}
+{%- endfor -%}
+{%- if files|length > max_files %} (+{{ files|length - max_files }} more){% endif -%}
+{%- endmacro -%}
+
+{%- macro format_change_summary(changes) -%}
+{%- set added = changes.added_files|length -%}
+{%- set modified = changes.modified_files|length -%}
+{%- set deleted = changes.deleted_files|length -%}
+{%- if added > 0 %}{{ added }} added{% endif -%}
+{%- if modified > 0 %}{% if added > 0 %}, {% endif %}{{ modified }} modified{% endif -%}
+{%- if deleted > 0 %}{% if added > 0 or modified > 0 %}, {% endif %}{{ deleted }} deleted{% endif -%}
+{%- endmacro -%}
+
+{%- macro get_change_type(changes) -%}
+{%- if changes.is_feature %}feat{% elif changes.is_fix %}fix{% elif changes.is_refactor %}refactor{% elif changes.is_docs %}docs{% elif changes.is_test %}test{% else %}chore{% endif -%}
+{%- endmacro -%}
+
+{%- block content -%}
+{# Override this block in child templates #}
+{%- endblock -%}
