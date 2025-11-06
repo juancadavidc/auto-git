@@ -24,7 +24,7 @@ gitai pr --base main -o pr.md   # Save to file
 
 ## ✨ Key Features
 
-- **🤖 Multiple AI Providers**: OpenAI (GPT), Anthropic (Claude), Ollama (local)
+- **🤖 Multiple AI Providers**: OpenAI (GPT), Anthropic (Claude), Ollama, LMStudio (local)
 - **📝 Smart Templates**: Conventional commits, GitHub/GitLab PR formats
 - **⚙️ Team Configuration**: Shared templates, conventions, multi-tier config
 - **🔍 Git Analysis**: Intelligent change detection and context building
@@ -35,6 +35,11 @@ gitai pr --base main -o pr.md   # Save to file
 ### OpenAI (GPT-3.5, GPT-4)
 ```bash
 export OPENAI_API_KEY="sk-your-openai-key"
+gitai config --set-provider openai       # Set as default provider
+gitai commit --preview                   # Use default provider
+gitai pr --base main
+
+# Or use directly without setting as default
 gitai commit --preview -p openai
 gitai pr --base main -p openai
 ```
@@ -42,6 +47,11 @@ gitai pr --base main -p openai
 ### Anthropic (Claude)
 ```bash
 export ANTHROPIC_API_KEY="sk-ant-your-anthropic-key"
+gitai config --set-provider anthropic    # Set as default provider
+gitai commit --preview                   # Use default provider
+gitai pr --base main
+
+# Or use directly without setting as default
 gitai commit --preview -p anthropic
 gitai pr --base main -p anthropic
 ```
@@ -52,9 +62,26 @@ gitai pr --base main -p anthropic
 ollama pull qwen2.5:7b
 ollama serve
 
-# Use GitAI (default provider)
+# Set as default provider (default after gitai config --global)
+gitai config --set-provider ollama
 gitai commit --preview
 gitai pr --base main
+```
+
+### LMStudio (Local with GUI)
+```bash
+# 1. Download and open LMStudio (https://lmstudio.ai)
+# 2. Download a model through the GUI
+# 3. Start the local server (default port: 1234)
+
+# Set as default provider
+gitai config --set-provider lmstudio
+gitai commit --preview
+gitai pr --base main
+
+# Or use directly without setting as default
+gitai commit --preview -p lmstudio
+gitai pr --base main -p lmstudio
 ```
 
 ### Configuration Files
@@ -111,6 +138,10 @@ gitai config --global                    # Initialize global configuration
 gitai config --team <team-name>          # Setup team configuration
 gitai config --show                      # Display current configuration
 gitai config --show --verbose            # Show detailed configuration
+gitai config --set-provider anthropic    # Set Anthropic as default provider
+gitai config --set-provider openai       # Set OpenAI as default provider
+gitai config --set-provider ollama       # Set Ollama as default provider
+gitai config --set-provider lmstudio     # Set LMStudio as default provider
 ```
 
 ### Template Commands
@@ -169,7 +200,7 @@ scripts/development/check-types.sh
 
 ### ✅ **Ready for Production Use**
 - **Full CLI Interface**: All commands functional with comprehensive validation
-- **Multi-Provider Support**: OpenAI, Anthropic (Claude), Ollama with easy switching
+- **Multi-Provider Support**: OpenAI, Anthropic (Claude), Ollama, LMStudio with easy switching
 - **Template System**: Conventional commits, GitHub/GitLab PR formats
 - **Configuration Management**: User/team/project hierarchy with fallbacks
 - **Error Handling**: Helpful error messages with suggestions
@@ -178,14 +209,17 @@ scripts/development/check-types.sh
 ```bash
 # Core functionality (fully tested and working)
 gitai config --global                    # ✅ Configuration setup
-gitai commit --preview                   # ✅ Commit generation  
+gitai commit --preview                   # ✅ Commit generation
 gitai pr --base main                     # ✅ PR generation
 gitai templates --list                   # ✅ Template management
 
-# Provider switching (fully functional)
-gitai commit -p openai                   # ✅ OpenAI integration
+# Provider management (fully functional)
+gitai config --set-provider anthropic    # ✅ Set default provider
+gitai config --set-provider openai       # ✅ Switch providers easily
+gitai commit -p openai                   # ✅ Override default per command
 gitai commit -p anthropic                # ✅ Claude integration
 gitai commit -p ollama                   # ✅ Local Ollama
+gitai commit -p lmstudio                 # ✅ Local LMStudio
 ```
 
 ## 🔧 Troubleshooting

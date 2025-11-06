@@ -24,7 +24,7 @@ from gitai.utils.validation import (
 def handle_pr(
     base_branch: str,
     template: str,
-    provider: str,
+    provider: Optional[str],
     output_file: Optional[Path],
     verbose: bool = False,
     config_path: Optional[Path] = None,
@@ -57,21 +57,29 @@ def handle_pr(
         
         # Validate template name
         template = validate_template_name(template)
-        
-        # Validate provider name
-        provider = validate_provider_name(provider)
-        
+
         # Validate output file if provided
         if output_file:
             output_file = validate_output_file(output_file)
-        
+
         # Validate branch has changes (this also validates base branch exists)
         validate_branch_has_changes(base_branch)
-        
+
         # 2. Load configuration
         log_with_context(logger, "info", "Loading configuration")
         config_manager = create_config_manager()
         config = config_manager.load_config()
+
+        # If no provider specified, use highest priority from config
+        if provider is None:
+            enabled_providers = config.get_enabled_providers()
+            if not enabled_providers:
+                raise GitAIError("No providers enabled in configuration")
+            provider = enabled_providers[0]
+            log_with_context(logger, "info", "Using default provider", provider=provider)
+
+        # Validate provider name (after setting default)
+        provider = validate_provider_name(provider)
 
         # 3. Analyze branch changes
         log_with_context(

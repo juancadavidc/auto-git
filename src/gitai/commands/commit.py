@@ -23,7 +23,7 @@ from gitai.utils.validation import (
 
 def handle_commit(
     template: str,
-    provider: str,
+    provider: Optional[str],
     preview: bool,
     include_untracked: bool,
     verbose: bool = False,
@@ -57,18 +57,26 @@ def handle_commit(
         
         # Validate template name
         template = validate_template_name(template)
-        
-        # Validate provider name
-        provider = validate_provider_name(provider)
-        
+
         # Check for staged changes (unless including untracked)
         if not include_untracked:
             validate_has_staged_changes()
-        
+
         # 2. Load configuration
         log_with_context(logger, "info", "Loading configuration")
         config_manager = create_config_manager()
         config = config_manager.load_config()
+
+        # If no provider specified, use highest priority from config
+        if provider is None:
+            enabled_providers = config.get_enabled_providers()
+            if not enabled_providers:
+                raise GitAIError("No providers enabled in configuration")
+            provider = enabled_providers[0]
+            log_with_context(logger, "info", "Using default provider", provider=provider)
+
+        # Validate provider name (after setting default)
+        provider = validate_provider_name(provider)
 
         # 3. Analyze staged changes
         log_with_context(
