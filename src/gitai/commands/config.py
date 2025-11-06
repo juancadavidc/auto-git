@@ -17,6 +17,7 @@ def handle_config(
     init_global: bool,
     team_name: Optional[str],
     show_config: bool,
+    set_provider: Optional[str] = None,
     verbose: bool = False,
     config_path: Optional[Path] = None,
 ) -> Optional[str]:
@@ -26,6 +27,7 @@ def handle_config(
         init_global: Initialize global configuration
         team_name: Team name for team config
         show_config: Show current configuration
+        set_provider: Set the preferred AI provider
         verbose: Enable verbose logging
         config_path: Optional config file path
 
@@ -53,13 +55,17 @@ def handle_config(
         elif team_name:
             return _init_team_config(config_manager, team_name, verbose)
 
+        elif set_provider:
+            return _set_provider(config_manager, set_provider, verbose)
+
         else:
             return """GitAI Configuration
 
 Available commands:
-  gitai config --global           # Initialize global user config
-  gitai config --team <name>      # Initialize team config
-  gitai config --show             # Show current configuration
+  gitai config --global                  # Initialize global user config
+  gitai config --team <name>             # Initialize team config
+  gitai config --show                    # Show current configuration
+  gitai config --set-provider <name>     # Set preferred AI provider
 
 For more help: gitai config --help"""
 
@@ -234,3 +240,92 @@ Team members should copy the team configuration to their local GitAI config."""
 
     except Exception as e:
         raise ConfigurationError(f"Failed to initialize team config: {e}")
+
+
+def _set_provider(config_manager, provider_name: str, verbose: bool) -> str:
+    """Set the preferred AI provider.
+
+    Args:
+        config_manager: Configuration manager instance
+        provider_name: Name of the provider to set (anthropic, openai, ollama)
+        verbose: Enable verbose logging
+
+    Returns:
+        Success message
+
+    Raises:
+        ConfigurationError: If setting provider fails
+    """
+    logger = setup_logger(__name__)
+
+    log_with_context(logger, "info", "Setting provider", provider_name=provider_name)
+
+    try:
+        # Get config paths
+        config_paths = config_manager.get_config_paths()
+        user_config_path = config_paths["user"]
+
+        if not user_config_path or not user_config_path.exists():
+            return f"""Global configuration does not exist yet.
+
+Please initialize it first with:
+  gitai config --global
+
+Then you can set the provider with:
+  gitai config --set-provider {provider_name}"""
+
+        # Load current configuration from YAML file directly
+        with open(user_config_path, "r", encoding="utf-8") as f:
+            config_data = yaml.safe_load(f) or {}
+
+        # Update provider priorities
+        if "providers" not in config_data:
+            config_data["providers"] = {}
+
+        # Get all provider names
+        all_providers = ["anthropic", "openai", "ollama", "lmstudio"]
+
+        # Set priorities: selected provider gets 1, others get higher numbers
+        for i, provider in enumerate(all_providers):
+            if provider == provider_name:
+                priority = 1
+            else:
+                # Other providers get priority 2, 3, etc.
+                priority = 2 + all_providers.index(provider) if provider != provider_name else 2
+
+            if provider not in config_data["providers"]:
+                config_data["providers"][provider] = {}
+
+            config_data["providers"][provider]["name"] = provider
+            config_data["providers"][provider]["enabled"] = True
+            config_data["providers"][provider]["priority"] = priority
+
+        # Reorder providers dict by priority
+        config_data["providers"] = dict(
+            sorted(
+                config_data["providers"].items(),
+                key=lambda item: item[1].get("priority", 999)
+            )
+        )
+
+        # Write back to file
+        with open(user_config_path, "w", encoding="utf-8") as f:
+            yaml.dump(config_data, f, default_flow_style=False, sort_keys=False)
+
+        log_with_context(
+            logger, "info", "Provider set successfully",
+            provider=provider_name,
+            config_path=str(user_config_path)
+        )
+
+        return f"""Provider set to '{provider_name}' successfully!
+
+Configuration file: {user_config_path}
+
+Current provider priority:
+  1. {provider_name} (primary)
+
+Use 'gitai config --show' to view full configuration."""
+
+    except Exception as e:
+        raise ConfigurationError(f"Failed to set provider: {e}")

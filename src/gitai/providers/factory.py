@@ -6,6 +6,7 @@ from gitai.providers.base import BaseProvider
 from gitai.providers.ollama import OllamaProvider
 from gitai.providers.openai import OpenAIProvider
 from gitai.providers.anthropic import AnthropicProvider
+from gitai.providers.lmstudio import LMStudioProvider
 from gitai.utils.exceptions import ProviderConfigError, ProviderError
 from gitai.utils.logger import setup_logger
 
@@ -17,6 +18,7 @@ class ProviderFactory:
         "ollama": OllamaProvider,
         "openai": OpenAIProvider,
         "anthropic": AnthropicProvider,
+        "lmstudio": LMStudioProvider,
     }
 
     def __init__(self):

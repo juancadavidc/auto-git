@@ -58,7 +58,7 @@ def main(ctx: click.Context, verbose: bool, config_path: Optional[Path]) -> None
     help="Template to use for commit message (default: conventional)",
 )
 @click.option(
-    "--provider", "-p", default="ollama", help="AI provider to use (default: ollama)"
+    "--provider", "-p", default=None, help="AI provider to use (default: highest priority from config)"
 )
 @click.option(
     "--preview", "-P", is_flag=True, help="Preview commit message without applying"
@@ -126,7 +126,7 @@ def commit(
     help="Template to use for PR description (default: github)",
 )
 @click.option(
-    "--provider", "-p", default="ollama", help="AI provider to use (default: ollama)"
+    "--provider", "-p", default=None, help="AI provider to use (default: highest priority from config)"
 )
 @click.option(
     "--output",
@@ -184,9 +184,14 @@ def pr(
 )
 @click.option("--team", help="Initialize team configuration")
 @click.option("--show", is_flag=True, help="Show current configuration")
+@click.option(
+    "--set-provider",
+    type=click.Choice(["anthropic", "openai", "ollama", "lmstudio"]),
+    help="Set the preferred AI provider",
+)
 @click.pass_context
 def config(
-    ctx: click.Context, global_config: bool, team: Optional[str], show: bool
+    ctx: click.Context, global_config: bool, team: Optional[str], show: bool, set_provider: Optional[str]
 ) -> None:
     """Manage GitAI configuration.
 
@@ -194,9 +199,11 @@ def config(
     or display current settings.
 
     Examples:
-        gitai config --global           # Setup global user config
-        gitai config --team frontend    # Setup team config
-        gitai config --show             # Show current config
+        gitai config --global                  # Setup global user config
+        gitai config --team frontend           # Setup team config
+        gitai config --show                    # Show current config
+        gitai config --set-provider anthropic  # Set Anthropic as default provider
+        gitai config --set-provider lmstudio   # Set LMStudio as default provider
     """
     try:
         from gitai.commands.config import handle_config
@@ -207,6 +214,7 @@ def config(
             init_global=global_config,
             team_name=team,
             show_config=show,
+            set_provider=set_provider,
             verbose=ctx.obj.get("verbose", False),
             config_path=ctx.obj.get("config_path"),
         )

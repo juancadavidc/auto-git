@@ -87,6 +87,28 @@ class AnthropicConfig(BaseModel):
         return v
 
 
+class LMStudioConfig(BaseModel):
+    """LMStudio-specific configuration."""
+
+    base_url: str = Field("http://localhost:1234/v1", description="LMStudio server base URL")
+    model: str = Field("local-model", description="Model name to use")
+    timeout: int = Field(30, description="Request timeout in seconds")
+    temperature: float = Field(0.7, description="Generation temperature")
+    max_tokens: Optional[int] = Field(1000, description="Maximum tokens to generate")
+
+    @field_validator("temperature")
+    def validate_temperature(cls, v):
+        if not 0 <= v <= 1:
+            raise ValueError("Temperature must be between 0 and 1")
+        return v
+
+    @field_validator("timeout")
+    def validate_timeout(cls, v):
+        if v <= 0:
+            raise ValueError("Timeout must be positive")
+        return v
+
+
 class TemplateConfig(BaseModel):
     """Template configuration."""
 
@@ -195,6 +217,7 @@ class GitAIConfig(BaseModel):
     ollama: Optional[OllamaConfig] = Field(None, description="Ollama configuration")
     openai: Optional[OpenAIConfig] = Field(None, description="OpenAI configuration")
     anthropic: Optional[AnthropicConfig] = Field(None, description="Anthropic configuration")
+    lmstudio: Optional[LMStudioConfig] = Field(None, description="LMStudio configuration")
 
     @model_validator(mode="after")
     def validate_config(self):
@@ -215,6 +238,8 @@ class GitAIConfig(BaseModel):
                     self.openai = OpenAIConfig()
                 elif provider_name == "anthropic" and not self.anthropic:
                     self.anthropic = AnthropicConfig()
+                elif provider_name == "lmstudio" and not self.lmstudio:
+                    self.lmstudio = LMStudioConfig()
 
         return self
 
@@ -240,17 +265,19 @@ class GitAIConfig(BaseModel):
             config.update(self.openai.dict())
         elif provider_name == "anthropic" and self.anthropic:
             config.update(self.anthropic.dict())
+        elif provider_name == "lmstudio" and self.lmstudio:
+            config.update(self.lmstudio.dict())
 
         return config
 
     def get_enabled_providers(self) -> List[str]:
-        """Get list of enabled provider names, sorted by priority."""
+        """Get list of enabled provider names, sorted by priority (1 = highest)."""
         enabled = [
             (name, config.priority)
             for name, config in self.providers.items()
             if config.enabled
         ]
-        return [name for name, _ in sorted(enabled, key=lambda x: x[1], reverse=True)]
+        return [name for name, _ in sorted(enabled, key=lambda x: x[1])]
 
     def get_template_search_paths(self) -> List[Path]:
         """Get all template search paths in order of precedence."""
