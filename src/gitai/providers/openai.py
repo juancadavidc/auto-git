@@ -129,10 +129,16 @@ class OpenAIProvider(BaseProvider):
         )
 
         # Prepare request payload
+        # Use system prompt from request, or fallback to generic prompt
+        system_message = request.system_prompt or (
+            "You are a helpful assistant that generates content based on git changes. "
+            "Follow the template format provided exactly."
+        )
+
         messages = [
             {
                 "role": "system",
-                "content": "You are a helpful assistant that generates clear, concise commit messages and PR descriptions based on git changes. Follow the template format provided and focus on the actual changes made.",
+                "content": system_message,
             },
             {"role": "user", "content": request.prompt},
         ]

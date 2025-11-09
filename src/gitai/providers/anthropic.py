@@ -138,7 +138,11 @@ class AnthropicProvider(BaseProvider):
         )
 
         # Prepare request payload
-        system_message = "You are a helpful assistant that generates clear, concise commit messages and PR descriptions based on git changes. Follow the template format provided and focus on the actual changes made."
+        # Use system prompt from request, or fallback to generic prompt
+        system_message = request.system_prompt or (
+            "You are a helpful assistant that generates content based on git changes. "
+            "Follow the template format provided exactly."
+        )
 
         messages = [{"role": "user", "content": request.prompt}]
 

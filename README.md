@@ -16,19 +16,26 @@ gitai config --global
 git add .
 gitai commit --preview           # Preview first
 gitai commit                     # Apply to git
+gitai commit -t minimal          # Use different template
 
 # Generate PR descriptions
 gitai pr --base main            # Generate PR description
 gitai pr --base main -o pr.md   # Save to file
+gitai pr --base main -t gitlab  # Use GitLab template
+
+# View available templates
+gitai templates --list           # List commit templates
+gitai templates --list --type pr # List PR templates
 ```
 
 ## ✨ Key Features
 
 - **🤖 Multiple AI Providers**: OpenAI (GPT), Anthropic (Claude), Ollama, LMStudio (local)
-- **📝 Smart Templates**: Conventional commits, GitHub/GitLab PR formats
+- **📝 Smart Templates**: Conventional commits, GitHub/GitLab PR formats, **fully customizable with Jinja2**
 - **⚙️ Team Configuration**: Shared templates, conventions, multi-tier config
 - **🔍 Git Analysis**: Intelligent change detection and context building
 - **🛡️ Robust CLI**: Comprehensive validation, helpful errors, verbose logging
+- **🎨 Easy Customization**: Create your own templates with rich variables (files, changes, types, etc.)
 
 ## 🤖 AI Provider Setup
 
@@ -130,6 +137,218 @@ nano ~/.config/gitai/config.yaml
 4. Apply **[Code Standards](docs/code-standards.md)** for implementation
 5. Reference **[Architecture Overview](docs/architecture-overview.md)** for component design
 
+## 📝 Templates Guide
+
+### What are Templates?
+
+Templates control how GitAI formats commit messages and PR descriptions. They use the Jinja2 templating language and have access to rich git context (files changed, lines added/removed, change types, etc.).
+
+### Available Templates
+
+**Commit Templates** (`-t` flag):
+- `conventional` (default) - Conventional Commits format (feat/fix/chore)
+- `descriptive` - Detailed, descriptive messages
+- `minimal` - Short, concise messages
+
+**PR Templates** (`-t` flag):
+- `github` (default) - GitHub-style PR descriptions with checklists
+- `gitlab` - GitLab merge request format
+- `standard` - Generic PR description format
+
+### Using Templates
+
+```bash
+# View available templates
+gitai templates --list                   # List commit templates
+gitai templates --list --type pr         # List PR templates
+
+# Show template content
+gitai templates --show conventional      # View commit template
+gitai templates --show github --type pr  # View PR template
+
+# Use specific template
+gitai commit -t conventional --preview   # Conventional commits (default)
+gitai commit -t minimal --preview        # Short messages
+gitai commit -t descriptive --preview    # Detailed messages
+
+gitai pr --base main -t github          # GitHub PR format (default)
+gitai pr --base main -t gitlab          # GitLab MR format
+```
+
+### Creating Custom Templates
+
+Templates are Jinja2 files (`.j2`) stored in:
+- **User templates**: `~/.config/gitai/templates/`
+- **Team templates**: `./.gitai/templates/` (in project root)
+- **Project templates**: `./.gitai-local/templates/` (git-ignored)
+
+#### Template Structure
+
+```
+~/.config/gitai/templates/
+├── commit/
+│   └── my-custom.j2        # Your custom commit template
+└── pr/
+    └── my-custom.j2        # Your custom PR template
+```
+
+#### Example: Custom Commit Template
+
+Create `~/.config/gitai/templates/commit/emoji.j2`:
+
+```jinja
+{# Emoji commit message template #}
+{# description: Generates commit messages with emojis #}
+{# variables: changes, repository, user #}
+
+{%- if changes.is_feature %}✨ feat{% elif changes.is_fix %}🐛 fix{% elif changes.is_docs %}📚 docs{% elif changes.is_test %}✅ test{% else %}🔧 chore{% endif %}{% if changes.scope %}({{ changes.scope }}){% endif %}: {{ changes.summary }}
+
+{%- if changes.body %}
+
+{{ changes.body }}
+{%- endif %}
+
+📝 Files changed: {{ changes.affected_files|length }}
+{%- if changes.lines_added %}
+➕ Added: {{ changes.lines_added }} lines
+{%- endif %}
+{%- if changes.lines_deleted %}
+➖ Removed: {{ changes.lines_deleted }} lines
+{%- endif %}
+```
+
+Use it:
+```bash
+gitai commit -t emoji --preview
+```
+
+#### Example: Custom PR Template
+
+Create `~/.config/gitai/templates/pr/detailed.j2`:
+
+```jinja
+{# Detailed PR template with impact analysis #}
+{# description: Comprehensive PR description with detailed sections #}
+{# variables: changes, repository, user, base_branch, head_branch #}
+
+## 🎯 Objective
+
+{{ changes.summary }}
+
+## 📋 Changes Overview
+
+**Branch**: `{{ head_branch }}` → `{{ base_branch }}`
+**Files Changed**: {{ changes.affected_files|length }}
+**Impact**: +{{ changes.lines_added }} -{{ changes.lines_deleted }} lines
+
+### Modified Components
+{%- for file in changes.modified_files %}
+- **{{ file.path }}** (+{{ file.lines_added }} -{{ file.lines_deleted }})
+  {%- if file.description %}
+  - {{ file.description }}
+  {%- endif %}
+{%- endfor %}
+
+{%- if changes.breaking_change %}
+
+## ⚠️ Breaking Changes
+
+{{ changes.breaking_change }}
+
+**Migration Required**: Yes
+{%- endif %}
+
+## ✅ Testing Strategy
+
+{%- if changes.test_files %}
+**Test Coverage Updated**:
+{%- for file in changes.test_files %}
+- {{ file.path }}
+{%- endfor %}
+{%- else %}
+- [ ] Unit tests added
+- [ ] Integration tests updated
+{%- endif %}
+- [ ] Manual testing completed
+- [ ] Edge cases validated
+
+## 📚 Documentation
+
+- [ ] README updated
+- [ ] API docs updated
+- [ ] Changelog entry added
+- [ ] Migration guide (if breaking)
+
+## 🔍 Review Focus
+
+Please pay special attention to:
+{%- if changes.is_refactor %}
+- Code structure and organization changes
+- Performance implications
+{%- elif changes.is_feature %}
+- New functionality and edge cases
+- Integration with existing features
+{%- elif changes.is_fix %}
+- Root cause analysis
+- Prevention of similar issues
+{%- endif %}
+```
+
+Use it:
+```bash
+gitai pr --base main -t detailed
+```
+
+### Available Template Variables
+
+Templates have access to these context variables:
+
+**Common Variables**:
+- `changes.summary` - AI-generated summary of changes
+- `changes.body` - Optional detailed description
+- `changes.scope` - Detected scope (file/module)
+- `changes.affected_files` - List of all changed files
+- `changes.added_files` - Newly created files
+- `changes.modified_files` - Modified files
+- `changes.deleted_files` - Deleted files
+- `changes.test_files` - Test files modified
+- `changes.lines_added` - Total lines added
+- `changes.lines_deleted` - Total lines removed
+- `changes.breaking_change` - Breaking change description (if any)
+
+**Change Type Flags**:
+- `changes.is_feature` - Is this a new feature?
+- `changes.is_fix` - Is this a bug fix?
+- `changes.is_refactor` - Is this a refactor?
+- `changes.is_docs` - Is this a documentation change?
+- `changes.is_test` - Is this a test change?
+
+**File Information** (for each file in affected_files):
+- `file.path` - File path
+- `file.change_type` - "added", "modified", "deleted", "renamed"
+- `file.lines_added` - Lines added in this file
+- `file.lines_deleted` - Lines removed from this file
+- `file.is_test` - Is this a test file?
+- `file.is_config` - Is this a config file?
+- `file.is_docs` - Is this a documentation file?
+- `file.language` - Programming language
+
+**Repository & User** (PR templates only):
+- `repository.name` - Repository name
+- `repository.branch` - Current branch
+- `base_branch` - Target branch for PR
+- `head_branch` - Source branch for PR
+- `user.name` - Git user name
+- `user.email` - Git user email
+
+### Template Tips
+
+1. **Use Jinja2 filters**: `{{ changes.summary|capitalize_first }}`
+2. **Conditional sections**: `{% if changes.test_files %}...{% endif %}`
+3. **Loop through files**: `{% for file in changes.modified_files %}...{% endfor %}`
+4. **Macros for reusability**: Define functions within templates
+5. **Extend base template**: Use `{% extends "../base.j2" %}` for consistency
+
 ## 💻 Command Reference
 
 ### Configuration Commands
@@ -148,25 +367,52 @@ gitai config --set-provider lmstudio     # Set LMStudio as default provider
 ```bash
 gitai templates --list                   # List commit templates
 gitai templates --list --type pr         # List PR templates
-gitai templates --show conventional      # Show template content
+gitai templates --show conventional      # Show commit template content
 gitai templates --show github --type pr  # Show PR template content
+gitai templates --show minimal           # Show minimal commit template
+gitai templates --show gitlab --type pr  # Show GitLab PR template
+
+# See the "📝 Templates Guide" section above for:
+# - How to create custom templates
+# - Available template variables
+# - Example custom templates
 ```
 
 ### Commit Generation
 ```bash
 gitai commit --preview                   # Preview commit message
 gitai commit                             # Generate and apply commit
-gitai commit -t descriptive              # Use specific template
-gitai commit -p openai                   # Use specific provider
+
+# Templates (-t flag)
+gitai commit -t conventional             # Conventional commits (default)
+gitai commit -t descriptive              # Detailed commit messages
+gitai commit -t minimal                  # Short, concise messages
+
+# Providers (-p flag)
+gitai commit -p openai                   # Use OpenAI
+gitai commit -p anthropic                # Use Claude
+
+# Additional options
 gitai commit --include-untracked         # Include untracked files
+gitai commit -t emoji --preview          # Use custom template
 ```
 
 ### PR Generation
 ```bash
 gitai pr --base main                     # Generate PR description
 gitai pr --base develop -o pr.md         # Save to file
-gitai pr -t gitlab                       # Use GitLab template
-gitai pr -p anthropic                    # Use Claude provider
+
+# Templates (-t flag)
+gitai pr --base main -t github           # GitHub PR format (default)
+gitai pr --base main -t gitlab           # GitLab MR format
+gitai pr --base main -t standard         # Generic PR format
+
+# Providers (-p flag)
+gitai pr --base main -p anthropic        # Use Claude
+gitai pr --base main -p openai           # Use OpenAI
+
+# Combine options
+gitai pr --base main -t detailed -o pr.md  # Custom template to file
 ```
 
 ### Development Commands
