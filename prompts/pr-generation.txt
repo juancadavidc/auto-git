@@ -19,4 +19,4 @@ The _bare-minimum_ description should have the following parts:
 ### Type of change
 
 You should describe here what type of change are you trying to merge. Is it a bugfix? A new feature? Adding more tests?
-A reviewer should know this by reading your description alone, without needing to open the JIRA ticket and grasp the context about it. 
+A reviewer should know this by reading your description alone, without needing to open the JIRA ticket and grasp the context about it.

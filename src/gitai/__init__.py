@@ -4,6 +4,8 @@ GitAI automates the creation of commit messages and pull request descriptions
 using AI analysis of git changes and customizable templates.
 """
 
+from typing import Any
+
 __version__ = "0.1.0"
 __author__ = "GitAI Contributors"
 __email__ = "contributors@gitai.dev"
@@ -16,7 +18,7 @@ __all__ = [
 ]
 
 
-def __getattr__(name: str):
+def __getattr__(name: str) -> type[Any]:
     """Lazy import of modules to avoid dependency issues."""
     if name == "GitAnalyzer":
         from gitai.core.git_analyzer import GitAnalyzer

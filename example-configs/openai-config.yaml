@@ -8,7 +8,7 @@ providers:
     config: {}
 
   ollama:
-    name: ollama  
+    name: ollama
     enabled: true
     priority: 2
     config: {}
@@ -27,7 +27,7 @@ templates:
   default_commit_template: conventional
   default_pr_template: github
 
-# Ollama fallback configuration  
+# Ollama fallback configuration
 ollama:
   base_url: "http://localhost:11434"
   model: "qwen2.5:7b"

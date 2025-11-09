@@ -2,16 +2,13 @@
 
 import os
 from pathlib import Path
-from typing import Dict, Any, Optional, List, Union
+from typing import Any, Dict, List, Optional
+
 import yaml
 from pydantic import ValidationError
 
+from ..utils.exceptions import ConfigurationError, InvalidConfigError
 from .models import GitAIConfig, create_default_config
-from ..utils.exceptions import (
-    ConfigurationError,
-    InvalidConfigError,
-    MissingConfigError,
-)
 
 
 class ConfigManager:
@@ -73,7 +70,7 @@ class ConfigManager:
         Returns:
             Dictionary mapping config levels to their file paths
         """
-        paths = {}
+        paths: Dict[str, Optional[Path]] = {}
 
         # Project config
         if self.project_root:
@@ -224,7 +221,7 @@ class ConfigManager:
 
     def _clean_config_dict(self, config_dict: Dict[str, Any]) -> Dict[str, Any]:
         """Remove None values and empty containers from config dictionary."""
-        cleaned = {}
+        cleaned: Dict[str, Any] = {}
 
         for key, value in config_dict.items():
             if value is None:

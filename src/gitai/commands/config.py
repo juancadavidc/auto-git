@@ -1,16 +1,14 @@
 """Config command implementation."""
 
 from pathlib import Path
-from typing import Optional
+from typing import Any, Dict, Optional, cast
+
 import yaml
 
-from gitai.config.manager import create_config_manager
-from gitai.utils.exceptions import GitAIError, ConfigurationError
-from gitai.utils.logger import setup_logger, log_with_context
-from gitai.utils.validation import (
-    validate_team_name,
-    create_helpful_error_message,
-)
+from gitai.config.manager import ConfigManager, create_config_manager
+from gitai.utils.exceptions import ConfigurationError, GitAIError
+from gitai.utils.logger import log_with_context, setup_logger
+from gitai.utils.validation import create_helpful_error_message, validate_team_name
 
 
 def handle_config(
@@ -37,13 +35,11 @@ def handle_config(
     Raises:
         GitAIError: If config operation fails
     """
-    logger = setup_logger(__name__)
-
     try:
         # Validate inputs
         if team_name:
             team_name = validate_team_name(team_name)
-        
+
         config_manager = create_config_manager()
 
         if show_config:
@@ -74,30 +70,30 @@ For more help: gitai config --help"""
         raise
     except Exception as e:
         # Wrap unexpected errors with helpful context
-        error_message = create_helpful_error_message(e, "Configuration operation failed")
+        error_message = create_helpful_error_message(
+            e, "Configuration operation failed"
+        )
         raise GitAIError(error_message) from e
 
 
-def _show_current_config(config_manager, verbose: bool) -> str:
+def _show_current_config(config_manager: ConfigManager, verbose: bool) -> str:
     """Show current configuration."""
-    logger = setup_logger(__name__)
-    
     try:
         # Get configuration info
         config_info = config_manager.get_current_config_info()
         config = config_manager.load_config()
-        
+
         # Build output
         output_lines = ["Current Configuration:"]
         output_lines.append("")
-        
+
         # Configuration sources
         output_lines.append("Configuration Sources:")
         for level, path in config_info["paths"].items():
             exists_marker = "✓" if config_info["exists"][level] else "✗"
             output_lines.append(f"  {level:8} {exists_marker} {path or 'N/A'}")
         output_lines.append("")
-        
+
         # Providers
         output_lines.append("Providers:")
         for provider_name in config_info["enabled_providers"]:
@@ -109,20 +105,22 @@ def _show_current_config(config_manager, verbose: bool) -> str:
             except Exception as e:
                 output_lines.append(f"  {provider_name}: Error loading config - {e}")
         output_lines.append("")
-        
+
         # Templates
         output_lines.append("Templates:")
-        output_lines.append(f"  Default commit: {config.templates.default_commit_template}")
+        output_lines.append(
+            f"  Default commit: {config.templates.default_commit_template}"
+        )
         output_lines.append(f"  Default PR: {config.templates.default_pr_template}")
         output_lines.append("")
-        
+
         # Template search paths
         if verbose:
             output_lines.append("Template Search Paths:")
             for path in config_info["template_paths"]:
                 output_lines.append(f"  {path}")
             output_lines.append("")
-        
+
         # User info
         if config.user:
             output_lines.append("User Information:")
@@ -131,15 +129,17 @@ def _show_current_config(config_manager, verbose: bool) -> str:
             if config.user.email:
                 output_lines.append(f"  Email: {config.user.email}")
             if config.user.preferred_provider:
-                output_lines.append(f"  Preferred Provider: {config.user.preferred_provider}")
-        
+                output_lines.append(
+                    f"  Preferred Provider: {config.user.preferred_provider}"
+                )
+
         return "\n".join(output_lines)
-        
+
     except Exception as e:
         return f"Error loading configuration: {e}"
 
 
-def _init_global_config(config_manager, verbose: bool) -> str:
+def _init_global_config(config_manager: ConfigManager, verbose: bool) -> str:
     """Initialize global configuration."""
     logger = setup_logger(__name__)
 
@@ -149,17 +149,17 @@ def _init_global_config(config_manager, verbose: bool) -> str:
         # Check if config already exists
         config_paths = config_manager.get_config_paths()
         user_config_path = config_paths["user"]
-        
+
         if user_config_path and user_config_path.exists():
             return f"Global configuration already exists at {user_config_path}"
-        
+
         # Initialize with defaults
-        config = config_manager.init_user_config()
-        
+        config_manager.init_user_config()
+
         log_with_context(
             logger, "info", "Global config created", config_path=str(user_config_path)
         )
-        
+
         return f"""Global configuration initialized successfully!
 
 Configuration file: {user_config_path}
@@ -176,7 +176,9 @@ Default templates: conventional (commit), github (PR)"""
         raise ConfigurationError(f"Failed to initialize global config: {e}")
 
 
-def _init_team_config(config_manager, team_name: str, verbose: bool) -> str:
+def _init_team_config(
+    config_manager: ConfigManager, team_name: str, verbose: bool
+) -> str:
     """Initialize team configuration."""
     logger = setup_logger(__name__)
 
@@ -186,23 +188,23 @@ def _init_team_config(config_manager, team_name: str, verbose: bool) -> str:
         # Set up team config directory
         team_config_dir = config_manager.user_config_dir / "teams" / team_name
         config_manager.team_config_dir = team_config_dir
-        
+
         # Check if team config already exists
         team_config_path = team_config_dir / "config.yaml"
         if team_config_path.exists():
             return f"Team configuration for '{team_name}' already exists at {team_config_path}"
-        
+
         # Initialize team configuration
-        config = config_manager.init_team_config(team_name)
-        
+        config_manager.init_team_config(team_name)
+
         # Create team templates directory
         templates_dir = team_config_dir / "templates"
         templates_dir.mkdir(parents=True, exist_ok=True)
-        
+
         # Create sample team commit template
         commit_template_dir = templates_dir / "commit"
         commit_template_dir.mkdir(exist_ok=True)
-        
+
         sample_template = f"""{'{# description: Team-specific conventional commit template #}'}
 {'{# variables: type, scope, description, body #}'}
 {{{{ type }}}}({{{{ scope or '{team_name}' }}}}): {{{{ description }}}}
@@ -214,15 +216,17 @@ def _init_team_config(config_manager, team_name: str, verbose: bool) -> str:
 {{% if breaking_changes %}}
 BREAKING CHANGE: {{{{ breaking_changes }}}}
 {{% endif %}}"""
-        
+
         (commit_template_dir / f"{team_name}.j2").write_text(sample_template)
-        
+
         log_with_context(
-            logger, "info", "Team config created", 
-            team_name=team_name, 
-            config_path=str(team_config_path)
+            logger,
+            "info",
+            "Team config created",
+            team_name=team_name,
+            config_path=str(team_config_path),
         )
-        
+
         return f"""Team configuration for '{team_name}' initialized successfully!
 
 Configuration file: {team_config_path}
@@ -242,7 +246,9 @@ Team members should copy the team configuration to their local GitAI config."""
         raise ConfigurationError(f"Failed to initialize team config: {e}")
 
 
-def _set_provider(config_manager, provider_name: str, verbose: bool) -> str:
+def _set_provider(
+    config_manager: ConfigManager, provider_name: str, verbose: bool
+) -> str:
     """Set the preferred AI provider.
 
     Args:
@@ -291,7 +297,11 @@ Then you can set the provider with:
                 priority = 1
             else:
                 # Other providers get priority 2, 3, etc.
-                priority = 2 + all_providers.index(provider) if provider != provider_name else 2
+                priority = (
+                    2 + all_providers.index(provider)
+                    if provider != provider_name
+                    else 2
+                )
 
             if provider not in config_data["providers"]:
                 config_data["providers"][provider] = {}
@@ -304,7 +314,7 @@ Then you can set the provider with:
         config_data["providers"] = dict(
             sorted(
                 config_data["providers"].items(),
-                key=lambda item: item[1].get("priority", 999)
+                key=lambda item: cast(Dict[str, Any], item[1]).get("priority", 999),
             )
         )
 
@@ -313,9 +323,11 @@ Then you can set the provider with:
             yaml.dump(config_data, f, default_flow_style=False, sort_keys=False)
 
         log_with_context(
-            logger, "info", "Provider set successfully",
+            logger,
+            "info",
+            "Provider set successfully",
             provider=provider_name,
-            config_path=str(user_config_path)
+            config_path=str(user_config_path),
         )
 
         return f"""Provider set to '{provider_name}' successfully!

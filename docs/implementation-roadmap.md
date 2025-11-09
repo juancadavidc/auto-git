@@ -40,7 +40,7 @@ Simplified roadmap for implementing the Python version with focused scope: autom
   dependencies = [
       "click>=8.0",
       "GitPython>=3.1",
-      "Jinja2>=3.1", 
+      "Jinja2>=3.1",
       "PyYAML>=6.0",
       "requests>=2.28",
       "pydantic>=2.0"
@@ -51,17 +51,17 @@ Simplified roadmap for implementing the Python version with focused scope: autom
   ```python
   # src/gitai/cli.py
   import click
-  
+
   @click.group()
   def main():
       """GitAI - AI-powered commit and PR generation"""
       pass
-  
+
   @main.command()
   def commit():
       click.echo("Commit command - TODO")
-  
-  @main.command() 
+
+  @main.command()
   def pr():
       click.echo("PR command - TODO")
   ```
@@ -71,7 +71,7 @@ Simplified roadmap for implementing the Python version with focused scope: autom
   ```python
   # src/gitai/core/git_analyzer.py
   from git import Repo
-  
+
   class GitAnalyzer:
       def get_staged_changes(self):
           # Basic implementation
@@ -82,7 +82,7 @@ Simplified roadmap for implementing the Python version with focused scope: autom
   ```python
   # src/gitai/providers/base.py
   from abc import ABC, abstractmethod
-  
+
   class BaseProvider(ABC):
       @abstractmethod
       def generate(self, prompt: str, context: dict) -> str:
@@ -93,7 +93,7 @@ Simplified roadmap for implementing the Python version with focused scope: autom
   ```python
   # src/gitai/config/models.py
   from pydantic import BaseModel
-  
+
   class AppConfig(BaseModel):
       default_provider: str = "ollama"
       # Basic config structure
@@ -168,7 +168,7 @@ Simplified roadmap for implementing the Python version with focused scope: autom
 
 ---
 
-### 🎯 Phase 3: CLI Commands (Week 3) 
+### 🎯 Phase 3: CLI Commands (Week 3)
 **Objective**: Functional CLI with polished UX
 
 #### Day 1-2: Commit Command
@@ -188,22 +188,22 @@ Simplified roadmap for implementing the Python version with focused scope: autom
   def handle_commit(template, preview):
       analyzer = GitAnalyzer()
       changes = analyzer.get_staged_changes()
-      
+
       config = load_config()
       provider = get_provider(config)
-      
+
       template_content = load_template('commit', template)
       prompt = render_template(template_content, changes)
-      
+
       message = provider.generate(prompt)
-      
+
       if preview:
           click.echo(message)
       else:
           apply_commit_message(message)
   ```
 
-#### Day 3-4: PR Command  
+#### Day 3-4: PR Command
 - [ ] **Command implementation**
   ```python
   @main.command()
@@ -245,7 +245,7 @@ Simplified roadmap for implementing the Python version with focused scope: autom
     ollama:
       model: "llama3.1"
       base_url: "http://localhost:11434"
-  
+
   templates:
     default_commit: "conventional"
     default_pr: "standard"
@@ -256,7 +256,7 @@ Simplified roadmap for implementing the Python version with focused scope: autom
   # ~/.config/gitai/config.yaml
   default_provider: "ollama"
   current_team: "frontend"
-  
+
   # ~/.config/gitai/teams/frontend.yaml
   extends: "default"
   templates:
@@ -322,7 +322,7 @@ def test_staged_changes_parsing():
     # Test diff parsing
     # Verify DiffAnalysis output
 
-# tests/unit/test_template_manager.py  
+# tests/unit/test_template_manager.py
 def test_template_rendering():
     # Test Jinja2 integration
     # Variable injection
@@ -429,7 +429,7 @@ def test_end_to_end_commit():
 Week │ Focus               │ Key Deliverable
 ─────┼────────────────────┼─────────────────────────────
   1  │ Setup & Foundation │ Project structure, CLI skeleton
-  2  │ Core Functionality │ Git analysis, Ollama provider  
+  2  │ Core Functionality │ Git analysis, Ollama provider
   3  │ CLI Commands       │ Working commit/pr commands
   4  │ Polish & Extension │ Config system, additional features
 ```
@@ -444,6 +444,6 @@ Week │ Focus               │ Key Deliverable
 
 ---
 
-**Document**: Implementation Roadmap v2.0 (GitAI)  
-**Last updated**: 2024-10-24  
+**Document**: Implementation Roadmap v2.0 (GitAI)
+**Last updated**: 2024-10-24
 **Focus**: Focused scope, practical implementation

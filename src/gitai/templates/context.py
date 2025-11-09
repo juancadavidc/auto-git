@@ -2,13 +2,12 @@
 
 import os
 import re
-from pathlib import Path
-from typing import Dict, List, Any, Optional, Set
-from datetime import datetime
 from dataclasses import dataclass
+from datetime import datetime
+from pathlib import Path
+from typing import Any, Dict, List, Optional
 
-from ..core.models import DiffAnalysis, FileChange, ChangeType
-from ..utils.exceptions import TemplateError
+from ..core.models import ChangeType, DiffAnalysis, FileChange
 
 
 @dataclass
@@ -63,20 +62,20 @@ class EnhancedDiffAnalysis:
     is_test: bool = False
 
     # File lists
-    affected_files: List[EnhancedFileChange] = None
-    added_files: List[EnhancedFileChange] = None
-    modified_files: List[EnhancedFileChange] = None
-    deleted_files: List[EnhancedFileChange] = None
-    test_files: List[EnhancedFileChange] = None
+    affected_files: Optional[List[EnhancedFileChange]] = None
+    added_files: Optional[List[EnhancedFileChange]] = None
+    modified_files: Optional[List[EnhancedFileChange]] = None
+    deleted_files: Optional[List[EnhancedFileChange]] = None
+    test_files: Optional[List[EnhancedFileChange]] = None
 
     # Statistics
     lines_added: int = 0
     lines_deleted: int = 0
 
     # Related issues (extracted from content)
-    related_issues: List[str] = None
+    related_issues: Optional[List[str]] = None
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         if self.affected_files is None:
             self.affected_files = []
         if self.added_files is None:
@@ -462,7 +461,7 @@ class ContextBuilder:
                 remote_obj = repo.remotes[0]  # Use first remote
                 remote = remote_obj.name
                 url = list(remote_obj.urls)[0] if remote_obj.urls else None
-        except:
+        except Exception:
             # Fall back to defaults if git operations fail
             pass
 
@@ -488,24 +487,34 @@ class ContextBuilder:
 
                 try:
                     name = config.get_value("user", "name")
-                except:
+                except Exception:
                     pass
 
                 try:
                     email = config.get_value("user", "email")
-                except:
+                except Exception:
                     pass
-        except:
+        except Exception:
             pass
 
         # Fall back to environment variables
         if not name:
-            name = os.environ.get("GIT_AUTHOR_NAME") or os.environ.get("USER")
+            name_val = os.environ.get("GIT_AUTHOR_NAME") or os.environ.get("USER")
+            name = str(name_val) if name_val else None
 
         if not email:
-            email = os.environ.get("GIT_AUTHOR_EMAIL")
+            email_val = os.environ.get("GIT_AUTHOR_EMAIL")
+            email = str(email_val) if email_val else None
 
-        return UserInfo(name=name, email=email)
+        # Ensure name and email are strings or None
+        final_name: Optional[str] = (
+            str(name) if name and isinstance(name, str) else None
+        )
+        final_email: Optional[str] = (
+            str(email) if email and isinstance(email, str) else None
+        )
+
+        return UserInfo(name=final_name, email=final_email)
 
 
 def create_context_builder(repository_root: Optional[Path] = None) -> ContextBuilder:
@@ -521,30 +530,32 @@ def create_context_builder(repository_root: Optional[Path] = None) -> ContextBui
 
 
 def build_commit_context(
-    diff_analysis: DiffAnalysis, 
+    diff_analysis: DiffAnalysis,
     config: Any,
-    additional_context: Optional[Dict[str, Any]] = None
+    additional_context: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
     """Build context for commit message templates.
-    
+
     Args:
         diff_analysis: Git diff analysis
         config: GitAI configuration
         additional_context: Additional context variables
-        
+
     Returns:
         Template context dictionary
     """
     builder = create_context_builder()
-    
+
     # Get user info from config if available
     user_info = None
-    if hasattr(config, 'user') and config.user:
+    if hasattr(config, "user") and config.user:
+        name_val = getattr(config.user, "name", None)
+        email_val = getattr(config.user, "email", None)
         user_info = UserInfo(
-            name=getattr(config.user, 'name', None),
-            email=getattr(config.user, 'email', None)
+            name=str(name_val) if name_val is not None else None,
+            email=str(email_val) if email_val is not None else None,
         )
-    
+
     return builder.build_commit_context(
         diff_analysis=diff_analysis,
         user_info=user_info,
@@ -557,40 +568,43 @@ def build_pr_context(
     config: Any,
     base_branch: str,
     head_branch: Optional[str] = None,
-    additional_context: Optional[Dict[str, Any]] = None
+    additional_context: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
     """Build context for PR description templates.
-    
+
     Args:
         diff_analysis: Git diff analysis
         config: GitAI configuration
         base_branch: Base branch name
         head_branch: Head branch name (auto-detected if None)
         additional_context: Additional context variables
-        
+
     Returns:
         Template context dictionary
     """
     builder = create_context_builder()
-    
+
     # Get user info from config if available
     user_info = None
-    if hasattr(config, 'user') and config.user:
+    if hasattr(config, "user") and config.user:
+        name_val = getattr(config.user, "name", None)
+        email_val = getattr(config.user, "email", None)
         user_info = UserInfo(
-            name=getattr(config.user, 'name', None),
-            email=getattr(config.user, 'email', None)
+            name=str(name_val) if name_val is not None else None,
+            email=str(email_val) if email_val is not None else None,
         )
-    
+
     # Auto-detect head branch if not provided
     if not head_branch:
         try:
             import git
+
             if builder.repository_root:
                 repo = git.Repo(builder.repository_root)
                 head_branch = repo.active_branch.name
-        except:
+        except Exception:
             head_branch = "current"
-    
+
     return builder.build_pr_context(
         diff_analysis=diff_analysis,
         base_branch=base_branch,

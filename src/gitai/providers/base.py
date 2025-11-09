@@ -1,10 +1,10 @@
 """Base provider interface for AI content generation."""
 
 from abc import ABC, abstractmethod
-from typing import Dict, Any, Optional
 from dataclasses import dataclass
+from typing import Any, Dict, Optional
 
-from gitai.utils.exceptions import ProviderError, ProviderConfigError
+from gitai.utils.exceptions import ProviderConfigError
 
 
 @dataclass

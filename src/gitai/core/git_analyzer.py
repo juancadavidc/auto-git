@@ -2,18 +2,19 @@
 
 import re
 from pathlib import Path
-from typing import Dict, Any, Optional, List
+from typing import Any, Dict, List, Optional
+
 import git
 from git.exc import GitCommandError, InvalidGitRepositoryError
 
-from gitai.core.models import DiffAnalysis, FileChange, ChangeType
+from gitai.core.models import ChangeType, DiffAnalysis, FileChange
 from gitai.utils.exceptions import (
     GitAnalysisError,
-    NoStagedChangesError,
-    InvalidRepositoryError,
     GitOperationError,
+    InvalidRepositoryError,
+    NoStagedChangesError,
 )
-from gitai.utils.logger import setup_logger, log_with_context
+from gitai.utils.logger import log_with_context, setup_logger
 
 
 class GitAnalyzer:
@@ -281,7 +282,7 @@ class GitAnalyzer:
             change_type = ChangeType.MODIFIED
 
         # Get file paths
-        file_path = diff_item.b_path or diff_item.a_path
+        file_path = diff_item.b_path or diff_item.a_path or "unknown"
         old_path = diff_item.a_path if diff_item.renamed_file else None
 
         # Count lines (approximation from diff)
@@ -302,7 +303,14 @@ class GitAnalyzer:
     def _count_diff_lines(self, diff_item: git.Diff) -> tuple[int, int]:
         """Count added and removed lines from diff item."""
         try:
-            diff_text = diff_item.diff.decode("utf-8", errors="ignore")
+            diff_data = diff_item.diff
+            if diff_data is None:
+                return 0, 0
+            diff_text = (
+                diff_data.decode("utf-8", errors="ignore")
+                if isinstance(diff_data, bytes)
+                else diff_data
+            )
             additions = len(re.findall(r"^\+[^+]", diff_text, re.MULTILINE))
             deletions = len(re.findall(r"^-[^-]", diff_text, re.MULTILINE))
             return additions, deletions
@@ -312,11 +320,18 @@ class GitAnalyzer:
     def _get_diff_item_preview(self, diff_item: git.Diff, max_lines: int = 5) -> str:
         """Get a preview of the diff content."""
         try:
-            diff_text = diff_item.diff.decode("utf-8", errors="ignore")
+            diff_data = diff_item.diff
+            if diff_data is None:
+                return ""
+            diff_text = (
+                diff_data.decode("utf-8", errors="ignore")
+                if isinstance(diff_data, bytes)
+                else diff_data
+            )
             lines = diff_text.split("\n")
 
             # Find meaningful lines (skip headers)
-            content_lines = []
+            content_lines: List[str] = []
             for line in lines:
                 if (
                     line.startswith("@@")
@@ -354,7 +369,7 @@ class GitAnalyzer:
             diff_output = self.repo.git.diff(f"{base_ref}...HEAD", "--", file_path)
             lines = diff_output.split("\n")
 
-            content_lines = []
+            content_lines: List[str] = []
             for line in lines:
                 if (
                     line.startswith("@@")
@@ -389,7 +404,11 @@ class GitAnalyzer:
         try:
             # Get last commit info
             last_commit = self.repo.head.commit
-            context["last_commit"] = last_commit.message.strip()
+            message = last_commit.message
+            # Ensure message is a string (it might be bytes in some git implementations)
+            if isinstance(message, bytes):
+                message = message.decode("utf-8", errors="ignore")
+            context["last_commit"] = message.strip()
             context["author"] = str(last_commit.author)
         except Exception:
             pass
@@ -407,7 +426,8 @@ class GitAnalyzer:
         try:
             # Get remote URL
             if self.repo.remotes:
-                info["remote_url"] = self.repo.remotes.origin.url
+                url = self.repo.remotes.origin.url
+                info["remote_url"] = str(url)  # Ensure it's always a string
         except Exception:
             pass
 

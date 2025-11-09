@@ -1,7 +1,8 @@
 """Configuration data models using Pydantic."""
 
-from typing import Dict, List, Optional, Any, Union
 from pathlib import Path
+from typing import Any, Dict, List, Optional
+
 from pydantic import BaseModel, Field, field_validator, model_validator
 
 
@@ -9,8 +10,10 @@ class ProviderConfig(BaseModel):
     """Configuration for an AI provider."""
 
     name: str = Field(..., description="Provider name (e.g., 'ollama', 'openai')")
-    enabled: bool = Field(True, description="Whether this provider is enabled")
-    priority: int = Field(1, description="Provider priority (higher = preferred)")
+    enabled: bool = Field(default=True, description="Whether this provider is enabled")
+    priority: int = Field(
+        default=1, description="Provider priority (higher = preferred)"
+    )
     config: Dict[str, Any] = Field(
         default_factory=dict, description="Provider-specific configuration"
     )
@@ -22,20 +25,24 @@ class ProviderConfig(BaseModel):
 class OllamaConfig(BaseModel):
     """Ollama-specific configuration."""
 
-    base_url: str = Field("http://localhost:11434", description="Ollama server base URL")
-    model: str = Field("qwen2.5:7b", description="Model name to use")
-    timeout: int = Field(30, description="Request timeout in seconds")
-    temperature: float = Field(0.7, description="Generation temperature")
-    max_tokens: Optional[int] = Field(None, description="Maximum tokens to generate")
+    base_url: str = Field(
+        default="http://localhost:11434", description="Ollama server base URL"
+    )
+    model: str = Field(default="qwen2.5:7b", description="Model name to use")
+    timeout: int = Field(default=30, description="Request timeout in seconds")
+    temperature: float = Field(default=0.7, description="Generation temperature")
+    max_tokens: Optional[int] = Field(
+        default=None, description="Maximum tokens to generate"
+    )
 
-    @field_validator("temperature")
-    def validate_temperature(cls, v):
+    @field_validator("temperature")  # type: ignore[misc]
+    def validate_temperature(cls, v: float) -> float:
         if not 0 <= v <= 1:
             raise ValueError("Temperature must be between 0 and 1")
         return v
 
-    @field_validator("timeout")
-    def validate_timeout(cls, v):
+    @field_validator("timeout")  # type: ignore[misc]
+    def validate_timeout(cls, v: int) -> int:
         if v <= 0:
             raise ValueError("Timeout must be positive")
         return v
@@ -44,21 +51,25 @@ class OllamaConfig(BaseModel):
 class OpenAIConfig(BaseModel):
     """OpenAI-specific configuration."""
 
-    api_key: Optional[str] = Field(None, description="OpenAI API key")
-    model: str = Field("gpt-3.5-turbo", description="Model name to use")
-    base_url: str = Field("https://api.openai.com/v1", description="OpenAI API base URL")
-    timeout: int = Field(30, description="Request timeout in seconds")
-    temperature: float = Field(0.7, description="Generation temperature")
-    max_tokens: Optional[int] = Field(1000, description="Maximum tokens to generate")
+    api_key: Optional[str] = Field(default=None, description="OpenAI API key")
+    model: str = Field(default="gpt-3.5-turbo", description="Model name to use")
+    base_url: str = Field(
+        default="https://api.openai.com/v1", description="OpenAI API base URL"
+    )
+    timeout: int = Field(default=30, description="Request timeout in seconds")
+    temperature: float = Field(default=0.7, description="Generation temperature")
+    max_tokens: Optional[int] = Field(
+        default=1000, description="Maximum tokens to generate"
+    )
 
-    @field_validator("temperature")
-    def validate_temperature(cls, v):
+    @field_validator("temperature")  # type: ignore[misc]
+    def validate_temperature(cls, v: float) -> float:
         if not 0 <= v <= 1:
             raise ValueError("Temperature must be between 0 and 1")
         return v
 
-    @field_validator("timeout")
-    def validate_timeout(cls, v):
+    @field_validator("timeout")  # type: ignore[misc]
+    def validate_timeout(cls, v: int) -> int:
         if v <= 0:
             raise ValueError("Timeout must be positive")
         return v
@@ -67,21 +78,27 @@ class OpenAIConfig(BaseModel):
 class AnthropicConfig(BaseModel):
     """Anthropic (Claude) specific configuration."""
 
-    api_key: Optional[str] = Field(None, description="Anthropic API key")
-    model: str = Field("claude-3-haiku-20240307", description="Model name to use")
-    base_url: str = Field("https://api.anthropic.com/v1", description="Anthropic API base URL")
-    timeout: int = Field(30, description="Request timeout in seconds")
-    temperature: float = Field(0.7, description="Generation temperature")
-    max_tokens: Optional[int] = Field(1000, description="Maximum tokens to generate")
+    api_key: Optional[str] = Field(default=None, description="Anthropic API key")
+    model: str = Field(
+        default="claude-3-haiku-20240307", description="Model name to use"
+    )
+    base_url: str = Field(
+        default="https://api.anthropic.com/v1", description="Anthropic API base URL"
+    )
+    timeout: int = Field(default=30, description="Request timeout in seconds")
+    temperature: float = Field(default=0.7, description="Generation temperature")
+    max_tokens: Optional[int] = Field(
+        default=1000, description="Maximum tokens to generate"
+    )
 
-    @field_validator("temperature")
-    def validate_temperature(cls, v):
+    @field_validator("temperature")  # type: ignore[misc]
+    def validate_temperature(cls, v: float) -> float:
         if not 0 <= v <= 1:
             raise ValueError("Temperature must be between 0 and 1")
         return v
 
-    @field_validator("timeout")
-    def validate_timeout(cls, v):
+    @field_validator("timeout")  # type: ignore[misc]
+    def validate_timeout(cls, v: int) -> int:
         if v <= 0:
             raise ValueError("Timeout must be positive")
         return v
@@ -90,20 +107,24 @@ class AnthropicConfig(BaseModel):
 class LMStudioConfig(BaseModel):
     """LMStudio-specific configuration."""
 
-    base_url: str = Field("http://localhost:1234/v1", description="LMStudio server base URL")
-    model: str = Field("local-model", description="Model name to use")
-    timeout: int = Field(30, description="Request timeout in seconds")
-    temperature: float = Field(0.7, description="Generation temperature")
-    max_tokens: Optional[int] = Field(1000, description="Maximum tokens to generate")
+    base_url: str = Field(
+        default="http://localhost:1234/v1", description="LMStudio server base URL"
+    )
+    model: str = Field(default="local-model", description="Model name to use")
+    timeout: int = Field(default=30, description="Request timeout in seconds")
+    temperature: float = Field(default=0.7, description="Generation temperature")
+    max_tokens: Optional[int] = Field(
+        default=1000, description="Maximum tokens to generate"
+    )
 
-    @field_validator("temperature")
-    def validate_temperature(cls, v):
+    @field_validator("temperature")  # type: ignore[misc]
+    def validate_temperature(cls, v: float) -> float:
         if not 0 <= v <= 1:
             raise ValueError("Temperature must be between 0 and 1")
         return v
 
-    @field_validator("timeout")
-    def validate_timeout(cls, v):
+    @field_validator("timeout")  # type: ignore[misc]
+    def validate_timeout(cls, v: int) -> int:
         if v <= 0:
             raise ValueError("Timeout must be positive")
         return v
@@ -113,10 +134,10 @@ class TemplateConfig(BaseModel):
     """Template configuration."""
 
     default_commit_template: str = Field(
-        "conventional", description="Default commit message template"
+        default="conventional", description="Default commit message template"
     )
     default_pr_template: str = Field(
-        "github", description="Default PR description template"
+        default="github", description="Default PR description template"
     )
     search_paths: List[Path] = Field(
         default_factory=list, description="Template search paths"
@@ -132,27 +153,31 @@ class TemplateConfig(BaseModel):
 class GitConfig(BaseModel):
     """Git-related configuration."""
 
-    default_branch: str = Field("main", description="Default base branch for PRs")
+    default_branch: str = Field(
+        default="main", description="Default base branch for PRs"
+    )
     ignore_patterns: List[str] = Field(
         default_factory=lambda: ["*.log", "*.tmp", ".env*"],
         description="Patterns for files to ignore in analysis",
     )
     max_diff_size: int = Field(
-        10000, description="Maximum diff size to analyze (lines)"
+        default=10000, description="Maximum diff size to analyze (lines)"
     )
     include_binary_files: bool = Field(
-        False, description="Whether to include binary files in analysis"
+        default=False, description="Whether to include binary files in analysis"
     )
 
 
 class UserConfig(BaseModel):
     """User-specific configuration."""
 
-    name: Optional[str] = Field(None, description="User's full name")
-    email: Optional[str] = Field(None, description="User's email address")
-    preferred_provider: Optional[str] = Field(None, description="Preferred AI provider")
+    name: Optional[str] = Field(default=None, description="User's full name")
+    email: Optional[str] = Field(default=None, description="User's email address")
+    preferred_provider: Optional[str] = Field(
+        default=None, description="Preferred AI provider"
+    )
     templates_dir: Optional[Path] = Field(
-        None, description="User's templates directory"
+        default=None, description="User's templates directory"
     )
 
     class Config:
@@ -164,7 +189,7 @@ class TeamConfig(BaseModel):
 
     name: str = Field(..., description="Team name")
     templates_dir: Optional[Path] = Field(
-        None, description="Team's templates directory"
+        default=None, description="Team's templates directory"
     )
     conventions: Dict[str, str] = Field(
         default_factory=dict,
@@ -182,9 +207,9 @@ class ProjectConfig(BaseModel):
     """Project-specific configuration."""
 
     name: str = Field(..., description="Project name")
-    repository_url: Optional[str] = Field(None, description="Repository URL")
+    repository_url: Optional[str] = Field(default=None, description="Repository URL")
     templates_dir: Optional[Path] = Field(
-        None, description="Project's templates directory"
+        default=None, description="Project's templates directory"
     )
     custom_variables: Dict[str, Any] = Field(
         default_factory=dict, description="Project-specific template variables"
@@ -209,18 +234,28 @@ class GitAIConfig(BaseModel):
     )
 
     # Context-specific sections (may not all be present)
-    user: Optional[UserConfig] = Field(None, description="User configuration")
-    team: Optional[TeamConfig] = Field(None, description="Team configuration")
-    project: Optional[ProjectConfig] = Field(None, description="Project configuration")
+    user: Optional[UserConfig] = Field(default=None, description="User configuration")
+    team: Optional[TeamConfig] = Field(default=None, description="Team configuration")
+    project: Optional[ProjectConfig] = Field(
+        default=None, description="Project configuration"
+    )
 
     # Provider-specific configs
-    ollama: Optional[OllamaConfig] = Field(None, description="Ollama configuration")
-    openai: Optional[OpenAIConfig] = Field(None, description="OpenAI configuration")
-    anthropic: Optional[AnthropicConfig] = Field(None, description="Anthropic configuration")
-    lmstudio: Optional[LMStudioConfig] = Field(None, description="LMStudio configuration")
+    ollama: Optional[OllamaConfig] = Field(
+        default=None, description="Ollama configuration"
+    )
+    openai: Optional[OpenAIConfig] = Field(
+        default=None, description="OpenAI configuration"
+    )
+    anthropic: Optional[AnthropicConfig] = Field(
+        default=None, description="Anthropic configuration"
+    )
+    lmstudio: Optional[LMStudioConfig] = Field(
+        default=None, description="LMStudio configuration"
+    )
 
-    @model_validator(mode="after")
-    def validate_config(self):
+    @model_validator(mode="after")  # type: ignore[misc]
+    def validate_config(self) -> "GitAIConfig":
         """Validate the overall configuration."""
         providers = self.providers
 

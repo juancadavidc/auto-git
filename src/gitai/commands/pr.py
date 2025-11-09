@@ -3,21 +3,22 @@
 from pathlib import Path
 from typing import Optional
 
-from gitai.core.git_analyzer import GitAnalyzer
-from gitai.providers.factory import provider_factory
-from gitai.providers.base import GenerationRequest
 from gitai.config.manager import create_config_manager
-from gitai.templates.manager import create_template_manager
+from gitai.core.git_analyzer import GitAnalyzer
+from gitai.core.models import DiffAnalysis
+from gitai.providers.base import GenerationRequest
+from gitai.providers.factory import provider_factory
 from gitai.templates.context import build_pr_context
+from gitai.templates.manager import create_template_manager
 from gitai.utils.exceptions import GitAIError, InvalidRepositoryError
-from gitai.utils.logger import setup_logger, log_with_context
+from gitai.utils.logger import log_with_context, setup_logger
 from gitai.utils.validation import (
-    validate_git_repository,
-    validate_template_name,
-    validate_provider_name,
-    validate_branch_has_changes,
-    validate_output_file,
     create_helpful_error_message,
+    validate_branch_has_changes,
+    validate_git_repository,
+    validate_output_file,
+    validate_provider_name,
+    validate_template_name,
 )
 
 
@@ -50,11 +51,13 @@ def handle_pr(
     try:
         # 1. Validate inputs and environment
         log_with_context(logger, "info", "Validating PR command inputs")
-        
+
         # Validate we're in a git repository
         git_root = validate_git_repository()
-        log_with_context(logger, "debug", "Git repository validated", git_root=str(git_root))
-        
+        log_with_context(
+            logger, "debug", "Git repository validated", git_root=str(git_root)
+        )
+
         # Validate template name
         template = validate_template_name(template)
 
@@ -76,7 +79,9 @@ def handle_pr(
             if not enabled_providers:
                 raise GitAIError("No providers enabled in configuration")
             provider = enabled_providers[0]
-            log_with_context(logger, "info", "Using default provider", provider=provider)
+            log_with_context(
+                logger, "info", "Using default provider", provider=provider
+            )
 
         # Validate provider name (after setting default)
         provider = validate_provider_name(provider)
@@ -193,7 +198,7 @@ def handle_pr(
         raise GitAIError(error_message) from e
 
 
-def _build_fallback_pr_prompt(template: str, diff_analysis) -> str:
+def _build_fallback_pr_prompt(template: str, diff_analysis: DiffAnalysis) -> str:
     """Build fallback prompt when template system fails.
 
     Args:
@@ -238,7 +243,9 @@ Include comprehensive sections:
     return base_prompt
 
 
-def _format_pr_output(pr_description: str, template: str, provider: str, base_branch: str) -> str:
+def _format_pr_output(
+    pr_description: str, template: str, provider: str, base_branch: str
+) -> str:
     """Format PR description for output display.
 
     Args:

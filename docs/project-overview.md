@@ -23,7 +23,7 @@ gitai pr --base main           # Generates PR description
 
 ### 🤖 AI-Powered Generation
 - Analyzes staged changes for commit messages
-- Analyzes branch changes for PR descriptions  
+- Analyzes branch changes for PR descriptions
 - Uses local AI (Ollama) or cloud providers (OpenAI)
 - Intelligent context extraction from code changes
 
@@ -111,7 +111,7 @@ templates:
 
 ```
 1. Default (package)     ← Base configuration
-2. User Global (~/.config/gitai/)  ← Your preferences  
+2. User Global (~/.config/gitai/)  ← Your preferences
 3. Team (~/.config/gitai/teams/)   ← Team standards
 4. Project (.gitai/)               ← Project overrides
 ```
@@ -171,7 +171,7 @@ Changes:
 
 ### 📋 Planned (Next 6 weeks)
 - **Week 1-2**: Foundation & core infrastructure
-- **Week 3**: Template & configuration system  
+- **Week 3**: Template & configuration system
 - **Week 4**: CLI commands & user experience
 - **Week 5**: Testing & quality assurance
 - **Week 6**: Polish & extensibility
@@ -183,7 +183,7 @@ Changes:
 # 1. Global install (once)
 pip install gitai
 
-# 2. User setup (once)  
+# 2. User setup (once)
 gitai config init
 
 # 3. Team setup (optional)
@@ -266,7 +266,7 @@ gitai config team frontend
 - Basic template library
 - Complete documentation
 
-### Medium Term (3-6 months) 
+### Medium Term (3-6 months)
 - Multiple AI providers
 - Advanced template features
 - VS Code extension
@@ -302,6 +302,6 @@ The tool is designed for immediate adoption with zero friction while providing d
 
 ---
 
-**Document**: Project Overview v1.0 (GitAI)  
-**Last updated**: 2024-10-24  
+**Document**: Project Overview v1.0 (GitAI)
+**Last updated**: 2024-10-24
 **Focus**: High-level introduction and value proposition

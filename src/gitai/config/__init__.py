@@ -1,18 +1,18 @@
 """Configuration system and management."""
 
+from .manager import ConfigManager, create_config_manager
 from .models import (
     GitAIConfig,
-    ProviderConfig,
-    TemplateConfig,
     GitConfig,
-    UserConfig,
-    TeamConfig,
-    ProjectConfig,
     OllamaConfig,
     OpenAIConfig,
+    ProjectConfig,
+    ProviderConfig,
+    TeamConfig,
+    TemplateConfig,
+    UserConfig,
     create_default_config,
 )
-from .manager import ConfigManager, create_config_manager
 
 __all__ = [
     "GitAIConfig",
