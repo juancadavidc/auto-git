@@ -4,11 +4,8 @@ from pathlib import Path
 from typing import Optional
 
 from gitai.utils.exceptions import GitAIError
-from gitai.utils.logger import setup_logger, log_with_context
-from gitai.utils.validation import (
-    validate_template_name,
-    create_helpful_error_message,
-)
+from gitai.utils.logger import log_with_context, setup_logger
+from gitai.utils.validation import create_helpful_error_message, validate_template_name
 
 
 def handle_templates(
@@ -33,13 +30,11 @@ def handle_templates(
     Raises:
         GitAIError: If template operation fails
     """
-    logger = setup_logger(__name__)
-
     try:
         # Validate inputs
         if show_template:
             show_template = validate_template_name(show_template)
-        
+
         if list_templates:
             return _list_available_templates(template_type, verbose)
 

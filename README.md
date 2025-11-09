@@ -17,7 +17,7 @@ git add .
 gitai commit --preview           # Preview first
 gitai commit                     # Apply to git
 
-# Generate PR descriptions  
+# Generate PR descriptions
 gitai pr --base main            # Generate PR description
 gitai pr --base main -o pr.md   # Save to file
 ```
@@ -116,7 +116,7 @@ nano ~/.config/gitai/config.yaml
 - **[Source Tree](docs/source-tree.md)** - File organization, directory structure
 - **[Code Standards](docs/code-standards.md)** - Coding conventions, testing, tools
 
-### 📈 Planning Documents  
+### 📈 Planning Documents
 - **[Refined Roadmap](docs/roadmap-refined.md)** - Epic breakdown with timeline
 - **[Project Overview](docs/project-overview.md)** - Features, use cases, vision
 - **[Enterprise Plan](docs/enterprise-adoption-plan.md)** - Team adoption strategy
@@ -125,7 +125,7 @@ nano ~/.config/gitai/config.yaml
 
 ### Starting a Story
 1. Read **[Project Overview](docs/project-overview.md)** for context
-2. Check **[Refined Roadmap](docs/roadmap-refined.md)** for story details  
+2. Check **[Refined Roadmap](docs/roadmap-refined.md)** for story details
 3. Follow **[Source Tree](docs/source-tree.md)** for file placement
 4. Apply **[Code Standards](docs/code-standards.md)** for implementation
 5. Reference **[Architecture Overview](docs/architecture-overview.md)** for component design
@@ -265,5 +265,5 @@ gitai pr --base main                     # Use existing branch
 
 ---
 
-**Status**: 🚀 **Epic 1-3 Complete** → Core functionality ready for use!  
+**Status**: 🚀 **Epic 1-3 Complete** → Core functionality ready for use!
 **Next**: Epic 4 (Testing & Quality Assurance) → Epic 5 (Polish) → Epic 6 (Team Pilot)

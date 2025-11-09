@@ -15,7 +15,7 @@ GitAI is a Python tool that automates the creation of commit messages and PR des
 
 ### Specific Scope
 1. **Commit Messages**: Analyze staged changes → generate commit message
-2. **PR Descriptions**: Analyze branch vs main → generate PR description  
+2. **PR Descriptions**: Analyze branch vs main → generate PR description
 3. **Template System**: Customizable templates per team/project
 4. **Local Setup**: Each team clones repo and configures templates
 5. **Future**: Review branch vs main for QA
@@ -290,6 +290,6 @@ The Python approach significantly simplifies implementation while maintaining al
 
 ---
 
-**Document**: Enterprise Adoption Plan v2.0 (GitAI)  
-**Last updated**: 2024-10-24  
+**Document**: Enterprise Adoption Plan v2.0 (GitAI)
+**Last updated**: 2024-10-24
 **Focus**: Simplified and focused on core value

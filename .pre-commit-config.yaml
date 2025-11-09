@@ -33,7 +33,7 @@ repos:
       - id: debug-statements
 
   - repo: https://github.com/PyCQA/bandit
-    rev: 1.7.5
+    rev: 1.7.10
     hooks:
       - id: bandit
-        args: ["-c", "pyproject.toml"]
+        args: ["-c", ".bandit"]

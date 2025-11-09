@@ -210,23 +210,23 @@ logger.info(
 ### Docstrings (Google Style)
 ```python
 def get_branch_changes(
-    self, 
+    self,
     base_branch: str = "main",
     include_context: bool = True
 ) -> DiffAnalysis:
     """Analyze changes between current branch and base branch.
-    
+
     Args:
         base_branch: The base branch to compare against. Defaults to "main".
         include_context: Whether to include additional context. Defaults to True.
-        
+
     Returns:
         DiffAnalysis object containing change information.
-        
+
     Raises:
         GitAnalysisError: If git operations fail.
         ValueError: If base_branch doesn't exist.
-        
+
     Example:
         >>> analyzer = GitAnalyzer()
         >>> changes = analyzer.get_branch_changes("develop")
@@ -246,7 +246,7 @@ def _sanitize_file_path(self, path: str) -> str:
 # ✅ Good - Complex logic explanation
 def _merge_configs(self, base: dict, override: dict) -> dict:
     """Deep merge configuration dictionaries.
-    
+
     Note: This preserves nested dictionaries while allowing
     complete override of list values for cleaner config management.
     """
@@ -302,12 +302,12 @@ def test_ollama_provider_generates_message_successfully():
     provider = OllamaProvider(config)
     prompt = "Generate a commit message"
     context = {"files_changed": 3, "lines_added": 50}
-    
+
     # Act
     with requests_mock.Mocker() as m:
         m.post(f"{config['base_url']}/api/generate", json={"response": "feat: add new feature"})
         result = provider.generate(prompt, context)
-    
+
     # Assert
     assert result == "feat: add new feature"
     assert m.call_count == 1
@@ -443,7 +443,7 @@ refactor/error-handling
 Consider using pathlib.Path instead of os.path for better cross-platform compatibility.
 
 # ✅ Good - Explanation with suggestion
-This could raise a KeyError if the template doesn't exist. 
+This could raise a KeyError if the template doesn't exist.
 Suggest using dict.get() with a default value or proper exception handling.
 
 # ❌ Bad - Non-constructive
@@ -529,6 +529,6 @@ repos:
 
 ---
 
-**Document**: Code Standards v1.0 (GitAI)  
-**Last updated**: 2024-10-24  
+**Document**: Code Standards v1.0 (GitAI)
+**Last updated**: 2024-10-24
 **Focus**: Consistency, maintainability, and contributor experience

@@ -38,12 +38,12 @@ GitAI is a Python-based CLI tool that automates the generation of commit message
 @click.group()
 def main():
     """GitAI - AI-powered commit and PR generation"""
-    
+
 @main.command()
 def commit():
     """Generate commit message from staged changes"""
-    
-@main.command() 
+
+@main.command()
 def pr():
     """Generate PR description from branch changes"""
 ```
@@ -74,7 +74,7 @@ def handle_pr(base: str, template: str, output: str):
     # 1. Load configuration
     # 2. Analyze branch changes
     # 3. Build context
-    # 4. Render template  
+    # 4. Render template
     # 5. Generate with AI
     # 6. Output result
 ```
@@ -99,7 +99,7 @@ class FileChange:
     lines_removed: int
     content_preview: str
 
-@dataclass  
+@dataclass
 class DiffAnalysis:
     files_changed: List[FileChange]
     total_additions: int
@@ -116,10 +116,10 @@ class DiffAnalysis:
 class BaseProvider(ABC):
     @abstractmethod
     def generate(self, prompt: str, context: dict) -> str
-    
+
     @abstractmethod
     def validate_config(self, config: dict) -> bool
-    
+
     @abstractmethod
     def health_check(self) -> bool
 ```
@@ -130,7 +130,7 @@ class OllamaProvider(BaseProvider):
     def __init__(self, config: dict):
         self.base_url = config.get('base_url')
         self.model = config.get('model')
-        
+
     def generate(self, prompt: str, context: dict) -> str:
         # HTTP request to Ollama API
         # Error handling and retry logic
@@ -311,7 +311,7 @@ Integration Tests
 ├─ Configuration hierarchy testing
 └─ Real git repository testing
 
-System Tests  
+System Tests
 ├─ CLI command testing
 ├─ User workflow simulation
 ├─ Error scenario testing
@@ -332,7 +332,7 @@ System Tests
 class CustomProvider(BaseProvider):
     def generate(self, prompt: str, context: dict) -> str:
         # Custom implementation
-        
+
 # 2. Register in provider factory
 # 3. Add configuration schema
 # 4. Add tests
@@ -344,7 +344,7 @@ class CustomProvider(BaseProvider):
 @main.command()
 def review():
     """Review branch changes"""
-    
+
 # 2. Implement business logic
 # 3. Add templates if needed
 # 4. Add configuration options
@@ -388,6 +388,6 @@ def review():
 
 ---
 
-**Document**: Architecture Overview v1.0 (GitAI)  
-**Last updated**: 2024-10-24  
+**Document**: Architecture Overview v1.0 (GitAI)
+**Last updated**: 2024-10-24
 **Focus**: System design and component interactions

@@ -2,18 +2,18 @@
 
 import os
 import time
-from typing import Dict, Any, Optional
+from typing import Any, Dict
 
 import requests
 
-from .base import BaseProvider, GenerationRequest, GenerationResponse
 from ..utils.exceptions import (
-    ProviderUnavailableError,
     GenerationTimeoutError,
-    ProviderError,
     ProviderConfigError,
+    ProviderError,
+    ProviderUnavailableError,
 )
-from ..utils.logger import setup_logger, log_with_context
+from ..utils.logger import log_with_context, setup_logger
+from .base import BaseProvider, GenerationRequest, GenerationResponse
 
 
 class AnthropicProvider(BaseProvider):
@@ -40,7 +40,7 @@ class AnthropicProvider(BaseProvider):
 
         # Validate configuration
         self.validate_config(config)
-        
+
         # Call parent constructor after setting attributes
         super().__init__(config)
 
@@ -87,26 +87,21 @@ class AnthropicProvider(BaseProvider):
                 "Content-Type": "application/json",
                 "anthropic-version": "2023-06-01",
             }
-            
+
             # Simple test message to check connectivity
             payload = {
                 "model": self.model,
                 "max_tokens": 10,
-                "messages": [
-                    {
-                        "role": "user",
-                        "content": "Hello"
-                    }
-                ]
+                "messages": [{"role": "user", "content": "Hello"}],
             }
-            
+
             response = requests.post(
                 f"{self.base_url}/messages",
                 json=payload,
                 headers=headers,
                 timeout=10,
             )
-            
+
             return response.status_code == 200
         except Exception as e:
             log_with_context(
@@ -144,13 +139,8 @@ class AnthropicProvider(BaseProvider):
 
         # Prepare request payload
         system_message = "You are a helpful assistant that generates clear, concise commit messages and PR descriptions based on git changes. Follow the template format provided and focus on the actual changes made."
-        
-        messages = [
-            {
-                "role": "user", 
-                "content": request.prompt
-            }
-        ]
+
+        messages = [{"role": "user", "content": request.prompt}]
 
         payload = {
             "model": self.model,
@@ -196,7 +186,7 @@ class AnthropicProvider(BaseProvider):
                     raise ProviderError("Invalid response format from Anthropic")
 
                 content = content_blocks[0]["text"].strip()
-                
+
                 if not content:
                     raise ProviderError("Empty response from Anthropic")
 
@@ -210,7 +200,9 @@ class AnthropicProvider(BaseProvider):
 
                 # Extract token usage from result
                 usage = result.get("usage", {})
-                tokens_used = usage.get("input_tokens", 0) + usage.get("output_tokens", 0)
+                tokens_used = usage.get("input_tokens", 0) + usage.get(
+                    "output_tokens", 0
+                )
 
                 return GenerationResponse(
                     content=content,
@@ -265,13 +257,13 @@ class AnthropicProvider(BaseProvider):
 
     def get_available_models(self) -> list[str]:
         """Get list of available models for Anthropic.
-        
+
         Returns:
             List of model names
         """
         return [
-            "claude-3-haiku-20240307",   # Fast and affordable
-            "claude-3-sonnet-20240229",  # Balanced performance  
-            "claude-3-opus-20240229",    # Most capable
-            "claude-3-5-sonnet-20240620", # Latest model
+            "claude-3-haiku-20240307",  # Fast and affordable
+            "claude-3-sonnet-20240229",  # Balanced performance
+            "claude-3-opus-20240229",  # Most capable
+            "claude-3-5-sonnet-20240620",  # Latest model
         ]
