@@ -1,19 +1,19 @@
 """Ollama provider implementation for local AI content generation."""
 
-import json
 import time
-from typing import Dict, Any, List, Optional
+from typing import Any, Dict, List, Optional
+
 import requests
-from requests.exceptions import RequestException, Timeout, ConnectionError
+from requests.exceptions import ConnectionError, RequestException, Timeout
 
 from gitai.providers.base import BaseProvider, GenerationRequest, GenerationResponse
 from gitai.utils.exceptions import (
-    ProviderError,
-    ProviderConfigError,
-    ProviderUnavailableError,
     GenerationTimeoutError,
+    ProviderConfigError,
+    ProviderError,
+    ProviderUnavailableError,
 )
-from gitai.utils.logger import setup_logger, log_with_context
+from gitai.utils.logger import log_with_context, setup_logger
 
 
 class OllamaProvider(BaseProvider):
@@ -32,11 +32,11 @@ class OllamaProvider(BaseProvider):
         self.logger = setup_logger(__name__)
         super().__init__(config)
 
-        self.base_url = config.get("base_url", "http://localhost:11434")
-        self.model = config.get("model", "llama3.1")
-        self.timeout = config.get("timeout", 30)
-        self.max_retries = config.get("max_retries", 3)
-        self.retry_delay = config.get("retry_delay", 1)
+        self.base_url: str = str(config.get("base_url", "http://localhost:11434"))
+        self.model: str = str(config.get("model", "llama3.1"))
+        self.timeout: int = int(config.get("timeout", 30))
+        self.max_retries: int = int(config.get("max_retries", 3))
+        self.retry_delay: int = int(config.get("retry_delay", 1))
 
         # Remove trailing slash from base_url
         self.base_url = self.base_url.rstrip("/")
@@ -138,19 +138,29 @@ class OllamaProvider(BaseProvider):
         model = request.model or self.model
 
         # Prepare request payload
-        payload = {"model": model, "prompt": final_prompt, "stream": False}
+        payload: Dict[str, Any] = {
+            "model": model,
+            "prompt": final_prompt,
+            "stream": False,
+        }
 
         # Add optional parameters
         if request.max_tokens:
-            payload["options"] = payload.get("options", {})
-            payload["options"]["num_predict"] = request.max_tokens
+            options = payload.get("options", {})
+            if not isinstance(options, dict):
+                options = {}
+            options["num_predict"] = request.max_tokens
+            payload["options"] = options
 
         if request.temperature is not None:
-            payload["options"] = payload.get("options", {})
-            payload["options"]["temperature"] = request.temperature
+            options = payload.get("options", {})
+            if not isinstance(options, dict):
+                options = {}
+            options["temperature"] = request.temperature
+            payload["options"] = options
 
         # Perform generation with retries
-        last_error = None
+        last_error: Optional[Exception] = None
         for attempt in range(self.max_retries):
             try:
                 log_with_context(

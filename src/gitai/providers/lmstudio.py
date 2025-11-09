@@ -1,19 +1,18 @@
 """LMStudio provider implementation."""
 
-import os
 import time
-from typing import Dict, Any, Optional
+from typing import Any, Dict
 
 import requests
 
-from .base import BaseProvider, GenerationRequest, GenerationResponse
 from ..utils.exceptions import (
-    ProviderUnavailableError,
     GenerationTimeoutError,
-    ProviderError,
     ProviderConfigError,
+    ProviderError,
+    ProviderUnavailableError,
 )
-from ..utils.logger import setup_logger, log_with_context
+from ..utils.logger import log_with_context, setup_logger
+from .base import BaseProvider, GenerationRequest, GenerationResponse
 
 
 class LMStudioProvider(BaseProvider):
@@ -130,12 +129,9 @@ class LMStudioProvider(BaseProvider):
         messages = [
             {
                 "role": "system",
-                "content": "You are a helpful assistant that generates clear, concise commit messages and PR descriptions based on git changes. Follow the template format provided and focus on the actual changes made."
+                "content": "You are a helpful assistant that generates clear, concise commit messages and PR descriptions based on git changes. Follow the template format provided and focus on the actual changes made.",
             },
-            {
-                "role": "user",
-                "content": request.prompt
-            }
+            {"role": "user", "content": request.prompt},
         ]
 
         payload = {
@@ -189,11 +185,11 @@ class LMStudioProvider(BaseProvider):
                 return GenerationResponse(
                     content=content,
                     model_used=self.model,
-                    generation_time=generation_time,
-                    provider_name="lmstudio",
                     metadata={
                         "usage": result.get("usage", {}),
                         "finish_reason": result["choices"][0].get("finish_reason"),
+                        "generation_time": generation_time,
+                        "provider_name": "lmstudio",
                     },
                 )
 

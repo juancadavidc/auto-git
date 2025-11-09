@@ -1,8 +1,8 @@
 """Data models for GitAI core functionality."""
 
 from dataclasses import dataclass
-from typing import List, Dict, Any, Optional
 from enum import Enum
+from typing import Any, Dict, List, Optional
 
 
 class ChangeType(Enum):
@@ -102,7 +102,7 @@ class DiffAnalysis:
     @property
     def files_by_type(self) -> Dict[ChangeType, List[FileChange]]:
         """Group files by change type."""
-        grouped = {}
+        grouped: Dict[ChangeType, List[FileChange]] = {}
         for file_change in self.files_changed:
             change_type = file_change.change_type
             if change_type not in grouped:

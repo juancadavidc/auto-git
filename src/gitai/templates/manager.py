@@ -1,9 +1,9 @@
 """Template management and rendering system."""
 
-import os
-from pathlib import Path
-from typing import Dict, List, Optional, Any, Union
 from dataclasses import dataclass
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Union, cast
+
 import jinja2
 from jinja2 import Environment, FileSystemLoader, Template, TemplateNotFound
 
@@ -86,7 +86,7 @@ class TemplateManager:
         Returns:
             Dictionary mapping categories ('commit', 'pr') to lists of template info
         """
-        templates = {"commit": [], "pr": []}
+        templates: Dict[str, List[TemplateInfo]] = {"commit": [], "pr": []}
 
         for search_path in self.search_paths:
             if not search_path.exists():
@@ -228,7 +228,7 @@ class TemplateManager:
         """
         try:
             template = self.get_template(template_name, category)
-            return template.render(**context)
+            return cast(str, template.render(**context))
         except jinja2.UndefinedError as e:
             raise TemplateError(
                 f"Undefined variable in template '{template_name}': {e}"
@@ -256,7 +256,8 @@ class TemplateManager:
             TemplateNotFoundError: If template is not found
             TemplateValidationError: If template is invalid
         """
-        template = self.get_template(template_name, category)
+        # Validate template exists and can be loaded
+        self.get_template(template_name, category)
 
         if required_variables:
             # Get template info to check variables
@@ -314,7 +315,7 @@ def create_template_manager(
     Returns:
         Configured template manager
     """
-    search_paths = []
+    search_paths: List[Union[str, Path]] = []
 
     # Add paths in precedence order (project > team > user > default)
     if project_templates_dir:

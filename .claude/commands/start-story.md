@@ -14,7 +14,7 @@ knowledge_base:
     - "README.md"                      # Navigation hub
     - "docs/roadmap-refined.md"        # Epic breakdown with stories
     - "docs/architecture-overview.md"  # System design
-    - "docs/source-tree.md"           # File organization  
+    - "docs/source-tree.md"           # File organization
     - "docs/code-standards.md"        # Coding standards
     - "docs/project-overview.md"      # Context and vision
 
@@ -23,16 +23,16 @@ epics:
     name: "Foundation & Core Infrastructure"
     duration: "2 weeks"
     priority: "P0"
-    key_docs: 
+    key_docs:
       - "docs/source-tree.md"
-      - "docs/architecture-overview.md" 
+      - "docs/architecture-overview.md"
       - "docs/code-standards.md"
     stories:
       - "Project setup & structure"
       - "Git analysis foundation"
-      - "Provider interface & Ollama implementation" 
+      - "Provider interface & Ollama implementation"
       - "CLI framework setup"
-  
+
   2:
     name: "Templates & Configuration System"
     duration: "1.5 weeks"
@@ -45,10 +45,10 @@ epics:
       - "Configuration hierarchy system"
       - "Default templates creation"
       - "Context builder implementation"
-  
+
   3:
     name: "CLI Commands & User Experience"
-    duration: "1.5 weeks" 
+    duration: "1.5 weeks"
     priority: "P0"
     key_docs:
       - "docs/architecture-overview.md#data-flow"
@@ -58,7 +58,7 @@ epics:
       - "PR command implementation"
       - "Config command implementation"
       - "Error handling & validation"
-  
+
   4:
     name: "Testing & Quality Assurance"
     duration: "1 week"
@@ -70,7 +70,7 @@ epics:
       - "Unit testing framework"
       - "Integration testing"
       - "Code quality & linting"
-  
+
   5:
     name: "Polish & Extensibility"
     duration: "1 week"
@@ -82,7 +82,7 @@ epics:
       - "Advanced template features"
       - "Performance & optimization"
       - "Documentation & distribution"
-  
+
   6:
     name: "Pilot & Feedback"
     duration: "2 weeks"

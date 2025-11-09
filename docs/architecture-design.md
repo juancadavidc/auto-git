@@ -116,7 +116,7 @@ gitai/
 ```
 ~/.config/gitai/
 ├── config.yaml            # User global preferences
-└── teams/                 # Team-specific configurations  
+└── teams/                 # Team-specific configurations
     ├── frontend.yaml
     ├── backend.yaml
     └── devops.yaml
@@ -159,7 +159,7 @@ def commit(template, provider, preview):
 
 @main.command()
 @click.option('--base', default='main', help='Base branch')
-@click.option('--template', help='Template to use')  
+@click.option('--template', help='Template to use')
 @click.option('--output', help='Output file')
 def pr(base, template, output):
     """Generate PR description from branch changes"""
@@ -194,17 +194,17 @@ class DiffAnalysis:
 class GitAnalyzer:
     def __init__(self, repo_path: Optional[Path] = None):
         self.repo = Repo(repo_path or Path.cwd())
-    
+
     def get_staged_changes(self) -> DiffAnalysis:
         """Analyze staged changes for commit message generation"""
         staged_diff = self.repo.git.diff('--staged', '--name-status')
         # Implementation...
-        
+
     def get_branch_changes(self, base_branch: str = 'main') -> DiffAnalysis:
         """Analyze branch changes vs base for PR description"""
         branch_diff = self.repo.git.diff(f'{base_branch}...HEAD', '--name-status')
         # Implementation...
-    
+
     def get_commit_context(self) -> dict:
         """Get current repo context"""
         return {
@@ -224,17 +224,17 @@ from typing import Dict, Any
 
 class BaseProvider(ABC):
     """Base interface for AI providers"""
-    
+
     @abstractmethod
     def generate(self, prompt: str, context: Dict[str, Any]) -> str:
         """Generate content using AI provider"""
         pass
-    
+
     @abstractmethod
     def validate_config(self, config: Dict[str, Any]) -> bool:
         """Validate provider configuration"""
         pass
-    
+
     @abstractmethod
     def health_check(self) -> bool:
         """Check if provider is available"""
@@ -249,7 +249,7 @@ class OllamaProvider(BaseProvider):
         self.base_url = config.get('base_url', 'http://localhost:11434')
         self.model = config.get('model', 'llama3.1')
         self.temperature = config.get('temperature', 0.4)
-    
+
     def generate(self, prompt: str, context: dict) -> str:
         response = requests.post(
             f"{self.base_url}/api/generate",
@@ -261,11 +261,11 @@ class OllamaProvider(BaseProvider):
             }
         )
         return response.json()['response']
-    
+
     def validate_config(self, config: dict) -> bool:
         required_fields = ['model']
         return all(field in config for field in required_fields)
-    
+
     def health_check(self) -> bool:
         try:
             response = requests.get(f"{self.base_url}/api/tags")
@@ -288,24 +288,24 @@ class TemplateManager:
         self.env = Environment(
             loader=FileSystemLoader([str(p) for p in template_paths])
         )
-    
+
     def get_template(self, template_name: str, template_type: str) -> str:
         """Load template by name and type (commit/pr)"""
         template_file = f"{template_type}/{template_name}.txt"
-        
+
         # Try team-specific first, then default
         for path in self.template_paths:
             template_path = path / template_file
             if template_path.exists():
                 return template_path.read_text()
-        
+
         raise FileNotFoundError(f"Template not found: {template_file}")
-    
+
     def render_template(self, template_content: str, context: Dict[str, Any]) -> str:
         """Render template with context data"""
         template = self.env.from_string(template_content)
         return template.render(**context)
-    
+
     def list_templates(self, template_type: str) -> List[str]:
         """List available templates of given type"""
         templates = []
@@ -313,7 +313,7 @@ class TemplateManager:
             type_dir = path / template_type
             if type_dir.exists():
                 templates.extend([
-                    f.stem for f in type_dir.glob('*.txt') 
+                    f.stem for f in type_dir.glob('*.txt')
                     if f.is_file()
                 ])
         return sorted(set(templates))
@@ -361,47 +361,47 @@ class ConfigManager:
         self.working_dir = working_dir or Path.cwd()
         self.user_config_dir = Path.home() / ".config" / "gitai"
         self.install_config_dir = self._get_install_config_dir()
-        
+
     def load_config(self, team_name: Optional[str] = None) -> AppConfig:
         """Load configuration with hierarchy: project > user > default"""
         config = self._load_default_config()
-        
+
         # Apply user global config
         user_config_path = self.user_config_dir / "config.yaml"
         if user_config_path.exists():
             user_config = self._load_yaml(user_config_path)
             config = self._merge_configs(config, user_config)
-        
+
         # Apply team config if specified
         if team_name:
             team_config_path = self.user_config_dir / "teams" / f"{team_name}.yaml"
             if team_config_path.exists():
                 team_config = self._load_yaml(team_config_path)
                 config = self._merge_configs(config, team_config)
-        
+
         # Apply project-specific config (highest priority)
         project_config_path = self.working_dir / "gitai.yaml"
         if project_config_path.exists():
             project_config = self._load_yaml(project_config_path)
             config = self._merge_configs(config, project_config)
-        
+
         return AppConfig(**config)
-    
+
     def _load_default_config(self) -> dict:
         """Load default configuration from installation"""
         default_path = self.install_config_dir / "default.yaml"
         return self._load_yaml(default_path)
-    
+
     def _get_install_config_dir(self) -> Path:
         """Get installation config directory"""
         # This would be the config/ dir in the installed package
         import gitai
         return Path(gitai.__file__).parent.parent / "config"
-    
+
     def _load_yaml(self, path: Path) -> dict:
         with open(path) as f:
             return yaml.safe_load(f)
-    
+
     def _merge_configs(self, base: dict, override: dict) -> dict:
         """Deep merge configuration dictionaries"""
         result = base.copy()
@@ -421,7 +421,7 @@ class ConfigManager:
 2. GitAnalyzer: get_staged_changes()
 3. ContextBuilder: build context from diff + config
 4. TemplateManager: load commit template
-5. Provider: generate with template + context  
+5. Provider: generate with template + context
 6. Output: preview or apply to commit
 ```
 
@@ -505,6 +505,6 @@ def test_commit_generation_flow():
 
 ---
 
-**Document**: Architecture Design v2.0 (GitAI)  
-**Last updated**: 2024-10-24  
+**Document**: Architecture Design v2.0 (GitAI)
+**Last updated**: 2024-10-24
 **Focus**: Simple, extensible, contributor-friendly
