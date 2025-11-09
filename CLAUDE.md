@@ -2,7 +2,7 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-When the user ask you to do a preview of a commit execute gitai commit --preview
+When the user ask you to do a preview of a commit message execute gitai commit --preview
 
 ## Development Commands
 
