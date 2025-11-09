@@ -12,6 +12,7 @@ from gitai.templates.context import build_pr_context
 from gitai.templates.manager import create_template_manager
 from gitai.utils.exceptions import GitAIError, InvalidRepositoryError
 from gitai.utils.logger import log_with_context, setup_logger
+from gitai.utils.prompts import get_system_prompt
 from gitai.utils.validation import (
     create_helpful_error_message,
     validate_branch_has_changes,
@@ -162,6 +163,7 @@ def handle_pr(
         request = GenerationRequest(
             prompt=rendered_template,
             context=template_context,
+            system_prompt=get_system_prompt("pr"),
         )
 
         response = ai_provider.generate(request)

@@ -14,6 +14,7 @@ class GenerationRequest:
     Attributes:
         prompt: The prompt text for the AI
         context: Additional context data
+        system_prompt: System-level prompt for the AI (command-specific)
         max_tokens: Maximum tokens to generate
         temperature: Sampling temperature (0.0 to 1.0)
         model: Specific model to use (provider-dependent)
@@ -21,6 +22,7 @@ class GenerationRequest:
 
     prompt: str
     context: Dict[str, Any]
+    system_prompt: Optional[str] = None
     max_tokens: Optional[int] = None
     temperature: Optional[float] = None
     model: Optional[str] = None

@@ -132,7 +132,7 @@ class OllamaProvider(BaseProvider):
             raise ProviderUnavailableError("Ollama is not available or not responding")
 
         # Prepare the prompt
-        final_prompt = self.prepare_prompt(request.prompt, request.context)
+        final_prompt = self.prepare_prompt_with_system(request)
 
         # Use model from request or default
         model = request.model or self.model
@@ -261,6 +261,27 @@ class OllamaProvider(BaseProvider):
             Default model name
         """
         return self.model
+
+    def prepare_prompt_with_system(self, request: GenerationRequest) -> str:
+        """Prepare prompt with system message for Ollama.
+
+        Args:
+            request: Generation request with prompt, context, and optional system_prompt
+
+        Returns:
+            Formatted prompt with system instructions and git context
+        """
+        # Use system prompt from request, or fallback to generic prompt
+        system_message = request.system_prompt or (
+            "You are a helpful assistant that generates content based on git changes. "
+            "Follow the template format provided exactly."
+        )
+
+        # Build prompt with system message
+        prompt_with_system = f"{system_message}\n\n{request.prompt}"
+
+        # Use the existing prepare_prompt method to add context
+        return self.prepare_prompt(prompt_with_system, request.context)
 
     def prepare_prompt(self, prompt: str, context: Dict[str, Any]) -> str:
         """Prepare prompt for Ollama with git context.
