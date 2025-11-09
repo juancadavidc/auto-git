@@ -2,18 +2,18 @@
 
 import os
 import time
-from typing import Dict, Any, Optional
+from typing import Any, Dict
 
 import requests
 
-from .base import BaseProvider, GenerationRequest, GenerationResponse
 from ..utils.exceptions import (
-    ProviderUnavailableError,
     GenerationTimeoutError,
-    ProviderError,
     ProviderConfigError,
+    ProviderError,
+    ProviderUnavailableError,
 )
-from ..utils.logger import setup_logger, log_with_context
+from ..utils.logger import log_with_context, setup_logger
+from .base import BaseProvider, GenerationRequest, GenerationResponse
 
 
 class OpenAIProvider(BaseProvider):
@@ -40,7 +40,7 @@ class OpenAIProvider(BaseProvider):
 
         # Validate configuration
         self.validate_config(config)
-        
+
         # Call parent constructor after setting attributes
         super().__init__(config)
 
@@ -86,13 +86,13 @@ class OpenAIProvider(BaseProvider):
                 "Authorization": f"Bearer {self.api_key}",
                 "Content-Type": "application/json",
             }
-            
+
             response = requests.get(
                 f"{self.base_url}/models",
                 headers=headers,
                 timeout=10,
             )
-            
+
             return response.status_code == 200
         except Exception as e:
             log_with_context(
@@ -132,12 +132,9 @@ class OpenAIProvider(BaseProvider):
         messages = [
             {
                 "role": "system",
-                "content": "You are a helpful assistant that generates clear, concise commit messages and PR descriptions based on git changes. Follow the template format provided and focus on the actual changes made."
+                "content": "You are a helpful assistant that generates clear, concise commit messages and PR descriptions based on git changes. Follow the template format provided and focus on the actual changes made.",
             },
-            {
-                "role": "user", 
-                "content": request.prompt
-            }
+            {"role": "user", "content": request.prompt},
         ]
 
         payload = {
@@ -156,9 +153,7 @@ class OpenAIProvider(BaseProvider):
         max_retries = 3
         for attempt in range(max_retries):
             try:
-                log_with_context(
-                    self.logger, "info", "Generating content with OpenAI"
-                )
+                log_with_context(self.logger, "info", "Generating content with OpenAI")
 
                 start_time = time.time()
                 response = requests.post(
@@ -177,7 +172,7 @@ class OpenAIProvider(BaseProvider):
                     raise ProviderError("No response from OpenAI")
 
                 content = result["choices"][0]["message"]["content"].strip()
-                
+
                 if not content:
                     raise ProviderError("Empty response from OpenAI")
 
@@ -192,11 +187,11 @@ class OpenAIProvider(BaseProvider):
                 return GenerationResponse(
                     content=content,
                     model_used=self.model,
-                    generation_time=generation_time,
-                    provider_name="openai",
                     metadata={
                         "usage": result.get("usage", {}),
                         "finish_reason": result["choices"][0].get("finish_reason"),
+                        "generation_time": generation_time,
+                        "provider_name": "openai",
                     },
                 )
 
@@ -240,13 +235,13 @@ class OpenAIProvider(BaseProvider):
 
     def get_available_models(self) -> list[str]:
         """Get list of available models for OpenAI.
-        
+
         Returns:
             List of model names
         """
         return [
             "gpt-3.5-turbo",
-            "gpt-3.5-turbo-16k", 
+            "gpt-3.5-turbo-16k",
             "gpt-4",
             "gpt-4-turbo",
             "gpt-4-turbo-preview",

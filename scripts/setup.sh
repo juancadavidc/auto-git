@@ -26,10 +26,6 @@ pip install --upgrade pip
 echo "Installing GitAI in development mode..."
 pip install -e ".[dev]"
 
-# Verify installation
-echo "Verifying installation..."
-python3 verify_structure.py
-
 # Test CLI help
 echo "Testing CLI help..."
 gitai --help

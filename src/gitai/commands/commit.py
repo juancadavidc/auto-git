@@ -1,23 +1,29 @@
 """Commit command implementation."""
 
+import logging
+import subprocess
 from pathlib import Path
 from typing import Optional
-import subprocess
 
-from gitai.core.git_analyzer import GitAnalyzer
-from gitai.providers.factory import provider_factory
-from gitai.providers.base import GenerationRequest
 from gitai.config.manager import create_config_manager
-from gitai.templates.manager import create_template_manager
+from gitai.core.git_analyzer import GitAnalyzer
+from gitai.core.models import DiffAnalysis
+from gitai.providers.base import GenerationRequest
+from gitai.providers.factory import provider_factory
 from gitai.templates.context import build_commit_context
-from gitai.utils.exceptions import GitAIError, NoStagedChangesError, InvalidRepositoryError
-from gitai.utils.logger import setup_logger, log_with_context
+from gitai.templates.manager import create_template_manager
+from gitai.utils.exceptions import (
+    GitAIError,
+    InvalidRepositoryError,
+    NoStagedChangesError,
+)
+from gitai.utils.logger import log_with_context, setup_logger
 from gitai.utils.validation import (
-    validate_git_repository,
-    validate_template_name,
-    validate_provider_name,
-    validate_has_staged_changes,
     create_helpful_error_message,
+    validate_git_repository,
+    validate_has_staged_changes,
+    validate_provider_name,
+    validate_template_name,
 )
 
 
@@ -50,11 +56,13 @@ def handle_commit(
     try:
         # 1. Validate inputs and environment
         log_with_context(logger, "info", "Validating commit command inputs")
-        
+
         # Validate we're in a git repository
         git_root = validate_git_repository()
-        log_with_context(logger, "debug", "Git repository validated", git_root=str(git_root))
-        
+        log_with_context(
+            logger, "debug", "Git repository validated", git_root=str(git_root)
+        )
+
         # Validate template name
         template = validate_template_name(template)
 
@@ -73,7 +81,9 @@ def handle_commit(
             if not enabled_providers:
                 raise GitAIError("No providers enabled in configuration")
             provider = enabled_providers[0]
-            log_with_context(logger, "info", "Using default provider", provider=provider)
+            log_with_context(
+                logger, "info", "Using default provider", provider=provider
+            )
 
         # Validate provider name (after setting default)
         provider = validate_provider_name(provider)
@@ -104,7 +114,9 @@ def handle_commit(
         try:
             template_manager.validate_template(template, "commit")
         except Exception:
-            logger.warning(f"Template '{template}' not found, falling back to 'conventional'")
+            logger.warning(
+                f"Template '{template}' not found, falling back to 'conventional'"
+            )
             template = "conventional"
 
         # Render template to create prompt
@@ -176,7 +188,7 @@ def handle_commit(
         raise GitAIError(error_message) from e
 
 
-def _build_fallback_prompt(template: str, diff_analysis) -> str:
+def _build_fallback_prompt(template: str, diff_analysis: DiffAnalysis) -> str:
     """Build fallback prompt when template system fails.
 
     Args:
@@ -228,7 +240,7 @@ def _format_preview(commit_message: str, template: str, provider: str) -> str:
 Run without --preview to apply this commit message."""
 
 
-def _apply_commit(commit_message: str, logger) -> Optional[str]:
+def _apply_commit(commit_message: str, logger: logging.Logger) -> Optional[str]:
     """Apply commit message to git repository.
 
     Args:
@@ -240,15 +252,15 @@ def _apply_commit(commit_message: str, logger) -> Optional[str]:
     """
     try:
         # Validate we're in a git repository
-        result = subprocess.run(
+        subprocess.run(
             ["git", "rev-parse", "--git-dir"],
             capture_output=True,
             text=True,
             check=True,
         )
-        
+
         # Apply the commit
-        result = subprocess.run(
+        subprocess.run(
             ["git", "commit", "-m", commit_message],
             capture_output=True,
             text=True,
@@ -256,9 +268,9 @@ def _apply_commit(commit_message: str, logger) -> Optional[str]:
         )
 
         log_with_context(logger, "info", "Commit applied successfully")
-        print(f"Commit applied successfully!")
+        print("Commit applied successfully!")
         print(f"Message: {commit_message}")
-        
+
         return None
 
     except subprocess.CalledProcessError as e:
