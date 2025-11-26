@@ -7,7 +7,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from ..core.models import ChangeType, DiffAnalysis, FileChange
+from ..core.models import ChangeType, DiffAnalysis, DiffHunk, FileChange
 
 
 @dataclass
@@ -42,6 +42,8 @@ class EnhancedFileChange:
     is_config: bool = False
     is_docs: bool = False
     language: Optional[str] = None
+    hunks: Optional[List[DiffHunk]] = None
+    content_preview: Optional[str] = None
 
 
 @dataclass
@@ -327,6 +329,8 @@ class ContextBuilder:
             is_config=is_config,
             is_docs=is_docs,
             language=language,
+            hunks=file_change.hunks if file_change.hunks else None,
+            content_preview=file_change.content_preview,
         )
 
     def _is_test_file(self, path: str) -> bool:
