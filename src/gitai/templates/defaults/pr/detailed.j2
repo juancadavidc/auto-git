@@ -1,0 +1,144 @@
+{# Detailed pull request template with structured diffs #}
+{# description: Generates detailed PR descriptions with structured diff information #}
+{# variables: changes, repository, user, base_branch, head_branch #}
+
+Generate a comprehensive pull request description with detailed code changes analysis.
+
+## Branch Information
+- **Base branch**: {{ base_branch }}
+- **Head branch**: {{ head_branch }}
+- **Files changed**: {{ changes.affected_files|length }}
+- **Lines**: +{{ changes.lines_added }} / -{{ changes.lines_deleted }}
+
+## Summary
+{{ changes.summary }}
+
+{%- if changes.body %}
+
+{{ changes.body }}
+{%- endif %}
+
+## Detailed Changes
+
+{% for file in changes.affected_files %}
+### `{{ file.path }}`
+**Change type**: {{ file.change_type }} | **Impact**: +{{ file.lines_added }} / -{{ file.lines_deleted }} lines
+
+{%- if file.description %}
+*{{ file.description }}*
+{%- endif %}
+
+{%- if file.hunks %}
+
+**Code changes**:
+{% for hunk in file.hunks[:3] %}
+- **Lines {{ hunk.start_line }}-{{ hunk.end_line }}**: {{ hunk.summary }}
+  {%- if hunk.added_lines %}
+  - Added:
+    {%- for line in hunk.added_lines[:5] %}
+    ```
+    + {{ line }}
+    ```
+    {%- endfor %}
+    {%- if hunk.added_lines|length > 5 %}
+    *({{ hunk.added_lines|length - 5 }} more lines...)*
+    {%- endif %}
+  {%- endif %}
+  {%- if hunk.removed_lines %}
+  - Removed:
+    {%- for line in hunk.removed_lines[:5] %}
+    ```
+    - {{ line }}
+    ```
+    {%- endfor %}
+    {%- if hunk.removed_lines|length > 5 %}
+    *({{ hunk.removed_lines|length - 5 }} more lines...)*
+    {%- endif %}
+  {%- endif %}
+{%- endfor %}
+{%- if file.hunks|length > 3 %}
+
+*... and {{ file.hunks|length - 3 }} more change block(s)*
+{%- endif %}
+
+{%- elif file.content_preview %}
+
+**Preview**:
+```diff
+{{ file.content_preview }}
+```
+{%- endif %}
+
+{% endfor %}
+
+{%- if changes.breaking_change %}
+
+## ⚠️ Breaking Changes
+
+{{ changes.breaking_change }}
+{%- endif %}
+
+## File Categories
+
+{%- if changes.added_files %}
+
+### ➕ New Files ({{ changes.added_files|length }})
+{%- for file in changes.added_files %}
+- `{{ file.path }}` ({{ file.lines_added }} lines)
+{%- endfor %}
+{%- endif %}
+
+{%- if changes.modified_files %}
+
+### ✏️ Modified Files ({{ changes.modified_files|length }})
+{%- for file in changes.modified_files %}
+- `{{ file.path }}` (+{{ file.lines_added }}/-{{ file.lines_deleted }})
+{%- endfor %}
+{%- endif %}
+
+{%- if changes.deleted_files %}
+
+### ❌ Deleted Files ({{ changes.deleted_files|length }})
+{%- for file in changes.deleted_files %}
+- `{{ file.path }}`
+{%- endfor %}
+{%- endif %}
+
+## Testing
+
+{%- if changes.test_files %}
+
+✅ **Tests included**:
+{%- for file in changes.test_files %}
+- `{{ file.path }}` (+{{ file.lines_added }}/-{{ file.lines_deleted }})
+{%- endfor %}
+{%- else %}
+
+- [ ] Add tests for new functionality
+- [ ] Verify existing tests pass
+{%- endif %}
+- [ ] Manual testing completed
+- [ ] Edge cases verified
+
+## Review Checklist
+
+- [ ] Code follows project style guidelines
+- [ ] Self-review completed
+- [ ] No hardcoded values or credentials
+- [ ] Error handling implemented
+- [ ] Documentation updated if needed
+- [ ] Performance impact considered
+- [ ] Security implications reviewed
+- [ ] Breaking changes documented
+
+{%- if changes.related_issues %}
+
+## Related Issues
+
+{%- for issue in changes.related_issues %}
+- Closes {{ issue }}
+{%- endfor %}
+{%- endif %}
+
+---
+**Generated with GitAI** | {{ changes.affected_files|length }} files • +{{ changes.lines_added }}/-{{ changes.lines_deleted }} lines
