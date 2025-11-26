@@ -1,75 +1,59 @@
-{# Detailed pull request template with structured diffs #}
-{# description: Generates detailed PR descriptions with structured diff information #}
+{# Detailed pull request template with AI-powered analysis #}
+{# description: Generates intelligent PR descriptions with change analysis and smart checklists #}
 {# variables: changes, repository, user, base_branch, head_branch #}
 
-Generate a comprehensive pull request description with detailed code changes analysis.
+Analyze the following git changes and generate a comprehensive pull request description.
 
-## Branch Information
-- **Base branch**: {{ base_branch }}
-- **Head branch**: {{ head_branch }}
-- **Files changed**: {{ changes.affected_files|length }}
-- **Lines**: +{{ changes.lines_added }} / -{{ changes.lines_deleted }}
+IMPORTANT INSTRUCTIONS:
+- Determine the TYPE of change (feature/bugfix/refactor/docs/chore/performance/security)
+- Write a clear SUMMARY explaining WHAT this PR does and WHY (not just listing files)
+- For the checklist, mark items as [x] if you can verify they're done based on the changes
+- Only show code snippets for the MOST IMPORTANT changes (not everything)
+- Focus on the business/technical impact, not just mechanical changes
+
+## Change Type
+<!-- Identify the primary type: feature/bugfix/refactor/docs/chore/performance/security -->
 
 ## Summary
-{{ changes.summary }}
+<!-- Write 2-3 sentences explaining WHAT this PR does and WHY it's needed -->
 
-{%- if changes.body %}
+## What Changed
 
-{{ changes.body }}
-{%- endif %}
+**Stats**: {{ changes.affected_files|length }} files • +{{ changes.lines_added }}/-{{ changes.lines_deleted }} lines
 
-## Detailed Changes
+<!-- Describe the key changes in plain language, focusing on the most important modifications -->
 
-{% for file in changes.affected_files %}
-### `{{ file.path }}`
-**Change type**: {{ file.change_type }} | **Impact**: +{{ file.lines_added }} / -{{ file.lines_deleted }} lines
-
-{%- if file.description %}
-*{{ file.description }}*
-{%- endif %}
-
-{%- if file.hunks %}
-
-**Code changes**:
-{% for hunk in file.hunks[:3] %}
-- **Lines {{ hunk.start_line }}-{{ hunk.end_line }}**: {{ hunk.summary }}
-  {%- if hunk.added_lines %}
-  - Added:
-    {%- for line in hunk.added_lines[:5] %}
-    ```
-    + {{ line }}
-    ```
-    {%- endfor %}
-    {%- if hunk.added_lines|length > 5 %}
-    *({{ hunk.added_lines|length - 5 }} more lines...)*
-    {%- endif %}
-  {%- endif %}
-  {%- if hunk.removed_lines %}
-  - Removed:
-    {%- for line in hunk.removed_lines[:5] %}
-    ```
-    - {{ line }}
-    ```
-    {%- endfor %}
-    {%- if hunk.removed_lines|length > 5 %}
-    *({{ hunk.removed_lines|length - 5 }} more lines...)*
-    {%- endif %}
-  {%- endif %}
+### Key Files Modified
+{% for file in changes.affected_files[:5] %}
+- `{{ file.path }}` ({{ file.change_type }}){% if file.description %}: {{ file.description }}{% endif %}
 {%- endfor %}
-{%- if file.hunks|length > 3 %}
-
-*... and {{ file.hunks|length - 3 }} more change block(s)*
+{%- if changes.affected_files|length > 5 %}
+- ... and {{ changes.affected_files|length - 5 }} more files
 {%- endif %}
 
-{%- elif file.content_preview %}
+### Technical Details
+<!-- Provide specific technical details about the implementation -->
 
-**Preview**:
-```diff
-{{ file.content_preview }}
-```
+{%- if changes.affected_files|selectattr('hunks')|list %}
+
+#### Important Code Changes
+{% for file in changes.affected_files %}
+{%- if file.hunks and loop.index <= 3 %}
+
+**`{{ file.path }}`**:
+{%- for hunk in file.hunks[:2] %}
+- {{ hunk.summary }} (lines {{ hunk.start_line }}-{{ hunk.end_line }})
+{%- if hunk.added_lines and loop.index == 1 %}
+  ```
+  {%- for line in hunk.added_lines[:3] %}
+  {{ line }}
+  {%- endfor %}
+  ```
 {%- endif %}
-
-{% endfor %}
+{%- endfor %}
+{%- endif %}
+{%- endfor %}
+{%- endif %}
 
 {%- if changes.breaking_change %}
 
@@ -78,58 +62,46 @@ Generate a comprehensive pull request description with detailed code changes ana
 {{ changes.breaking_change }}
 {%- endif %}
 
-## File Categories
+## Impact Analysis
+<!-- Describe the impact on: performance, security, backwards compatibility, dependencies -->
 
-{%- if changes.added_files %}
+## Testing Strategy
+<!-- Describe how these changes should be tested -->
 
-### ➕ New Files ({{ changes.added_files|length }})
-{%- for file in changes.added_files %}
-- `{{ file.path }}` ({{ file.lines_added }} lines)
-{%- endfor %}
-{%- endif %}
+{%- if changes.test_files %}
 
-{%- if changes.modified_files %}
-
-### ✏️ Modified Files ({{ changes.modified_files|length }})
-{%- for file in changes.modified_files %}
-- `{{ file.path }}` (+{{ file.lines_added }}/-{{ file.lines_deleted }})
-{%- endfor %}
-{%- endif %}
-
-{%- if changes.deleted_files %}
-
-### ❌ Deleted Files ({{ changes.deleted_files|length }})
-{%- for file in changes.deleted_files %}
+**Test files modified**:
+{%- for file in changes.test_files %}
 - `{{ file.path }}`
 {%- endfor %}
 {%- endif %}
 
-## Testing
+## Checklist
+<!-- Mark with [x] for items you can verify from the changes -->
 
 {%- if changes.test_files %}
-
-✅ **Tests included**:
-{%- for file in changes.test_files %}
-- `{{ file.path }}` (+{{ file.lines_added }}/-{{ file.lines_deleted }})
-{%- endfor %}
+- [x] Tests added/updated for changes
 {%- else %}
-
-- [ ] Add tests for new functionality
-- [ ] Verify existing tests pass
+- [ ] Tests added/updated for changes
 {%- endif %}
-- [ ] Manual testing completed
-- [ ] Edge cases verified
 
-## Review Checklist
+{%- set has_docs = namespace(found=false) %}
+{%- for file in changes.affected_files %}
+  {%- if file.path.endswith('.md') or file.path.endswith('.rst') or file.path.endswith('.txt') %}
+    {%- set has_docs.found = true %}
+  {%- endif %}
+{%- endfor %}
+{%- if has_docs.found %}
+- [x] Documentation updated
+{%- else %}
+- [ ] Documentation updated if needed
+{%- endif %}
 
 - [ ] Code follows project style guidelines
 - [ ] Self-review completed
-- [ ] No hardcoded values or credentials
-- [ ] Error handling implemented
-- [ ] Documentation updated if needed
-- [ ] Performance impact considered
-- [ ] Security implications reviewed
-- [ ] Breaking changes documented
+- [ ] No breaking changes (or documented above)
+- [ ] Security implications considered
+- [ ] Performance impact assessed
 
 {%- if changes.related_issues %}
 
@@ -141,4 +113,26 @@ Generate a comprehensive pull request description with detailed code changes ana
 {%- endif %}
 
 ---
-**Generated with GitAI** | {{ changes.affected_files|length }} files • +{{ changes.lines_added }}/-{{ changes.lines_deleted }} lines
+
+**Context for AI Analysis**:
+
+Files changed: {{ changes.affected_files|length }}
+- Added: {{ changes.added_files|length }}
+- Modified: {{ changes.modified_files|length }}
+- Deleted: {{ changes.deleted_files|length }}
+
+{%- if changes.affected_files|length <= 10 %}
+
+File list:
+{%- for file in changes.affected_files %}
+- {{ file.path }} ({{ file.change_type }}, +{{ file.lines_added }}/-{{ file.lines_deleted }})
+{%- endfor %}
+{%- endif %}
+
+{%- if changes.test_files %}
+
+Test files present: Yes ({{ changes.test_files|length }} file(s))
+{%- else %}
+
+Test files present: No
+{%- endif %}
