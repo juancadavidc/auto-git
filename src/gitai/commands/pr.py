@@ -97,8 +97,13 @@ def handle_pr(
             provider=provider,
         )
 
+        # Enable detailed diff for templates that need it
+        include_detailed = template in ["detailed"]
+
         analyzer = GitAnalyzer()
-        diff_analysis = analyzer.get_branch_changes(base_branch=base_branch)
+        diff_analysis = analyzer.get_branch_changes(
+            base_branch=base_branch, include_detailed_diff=include_detailed
+        )
 
         if not diff_analysis.files_changed:
             raise GitAIError(

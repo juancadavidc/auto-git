@@ -7,7 +7,7 @@ from typing import Any, Dict, List, Optional
 import git
 from git.exc import GitCommandError, InvalidGitRepositoryError
 
-from gitai.core.models import ChangeType, DiffAnalysis, FileChange
+from gitai.core.models import ChangeType, DiffAnalysis, DiffHunk, FileChange
 from gitai.utils.exceptions import (
     GitAnalysisError,
     GitOperationError,
@@ -143,11 +143,14 @@ class GitAnalyzer:
         except Exception as e:
             raise GitAnalysisError(f"Failed to analyze staged changes: {e}") from e
 
-    def get_branch_changes(self, base_branch: str = "main") -> DiffAnalysis:
+    def get_branch_changes(
+        self, base_branch: str = "main", include_detailed_diff: bool = False
+    ) -> DiffAnalysis:
         """Analyze changes between current branch and base branch for PR generation.
 
         Args:
             base_branch: Base branch to compare against
+            include_detailed_diff: Include detailed diff hunks and full diff content
 
         Returns:
             DiffAnalysis object containing branch changes
@@ -218,12 +221,32 @@ class GitAnalyzer:
                         base_ref, file_path
                     )
 
+                    # Get diff content
+                    diff_preview = self._get_diff_preview(base_ref, file_path)
+
+                    # Parse hunks if detailed diff is requested
+                    hunks: List[DiffHunk] = []
+                    full_diff: Optional[str] = None
+                    if include_detailed_diff:
+                        try:
+                            full_diff = self.repo.git.diff(
+                                f"{base_ref}...HEAD", "--", file_path
+                            )
+                            if full_diff:
+                                hunks = self._parse_diff_hunks(full_diff)
+                        except Exception as e:
+                            self.logger.warning(
+                                f"Could not parse hunks for {file_path}: {e}"
+                            )
+
                     file_change = FileChange(
                         path=file_path,
                         change_type=change_type,
                         lines_added=additions,
                         lines_removed=deletions,
-                        content_preview=self._get_diff_preview(base_ref, file_path),
+                        content_preview=diff_preview,
+                        hunks=hunks,
+                        full_diff=full_diff if include_detailed_diff else None,
                     )
 
                     file_changes.append(file_change)
@@ -463,3 +486,58 @@ class GitAnalyzer:
             return f"1 file {', '.join(parts)}"
         else:
             return f"{file_count} files ({', '.join(parts)})"
+
+    def _parse_diff_hunks(self, diff_text: str, max_hunks: int = 10) -> List[DiffHunk]:
+        """Parse diff text into structured hunks.
+
+        Args:
+            diff_text: Raw diff text
+            max_hunks: Maximum number of hunks to parse (to avoid overwhelming output)
+
+        Returns:
+            List of DiffHunk objects
+        """
+        hunks: List[DiffHunk] = []
+        if not diff_text:
+            return hunks
+
+        lines = diff_text.split("\n")
+        current_hunk: Optional[DiffHunk] = None
+        current_line = 0
+
+        for line in lines:
+            # Detect hunk header (e.g., @@ -10,5 +10,6 @@)
+            if line.startswith("@@"):
+                if current_hunk and len(hunks) < max_hunks:
+                    hunks.append(current_hunk)
+
+                # Parse hunk header to get line numbers
+                match = re.search(r"@@ -(\d+),?\d* \+(\d+),?\d* @@", line)
+                if match:
+                    start_line = int(match.group(2))
+                    current_line = start_line
+                    current_hunk = DiffHunk(
+                        start_line=start_line, end_line=start_line, header=line
+                    )
+
+            elif current_hunk:
+                if line.startswith("+") and not line.startswith("+++"):
+                    current_hunk.added_lines.append(line[1:])
+                    current_line += 1
+                    current_hunk.end_line = current_line
+                elif line.startswith("-") and not line.startswith("---"):
+                    current_hunk.removed_lines.append(line[1:])
+                elif line.startswith(" "):
+                    # Context line
+                    if not current_hunk.added_lines and not current_hunk.removed_lines:
+                        current_hunk.context_before.append(line[1:])
+                    else:
+                        current_hunk.context_after.append(line[1:])
+                    current_line += 1
+                    current_hunk.end_line = current_line
+
+        # Add the last hunk
+        if current_hunk and len(hunks) < max_hunks:
+            hunks.append(current_hunk)
+
+        return hunks[:max_hunks]
