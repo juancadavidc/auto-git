@@ -1,6 +1,6 @@
 """Data models for GitAI core functionality."""
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, Dict, List, Optional
 
@@ -19,6 +19,39 @@ class ChangeType(Enum):
 
 
 @dataclass
+class DiffHunk:
+    """Represents a single hunk (block of changes) in a diff.
+
+    Attributes:
+        start_line: Starting line number in the file
+        end_line: Ending line number in the file
+        context_before: Lines before the change for context
+        added_lines: Lines that were added
+        removed_lines: Lines that were removed
+        context_after: Lines after the change for context
+        header: The hunk header (e.g., '@@ -10,5 +10,6 @@')
+    """
+
+    start_line: int
+    end_line: int
+    context_before: List[str] = field(default_factory=list)
+    added_lines: List[str] = field(default_factory=list)
+    removed_lines: List[str] = field(default_factory=list)
+    context_after: List[str] = field(default_factory=list)
+    header: str = ""
+
+    @property
+    def summary(self) -> str:
+        """Generate a summary of this hunk."""
+        if self.added_lines and not self.removed_lines:
+            return f"Added {len(self.added_lines)} line(s)"
+        elif self.removed_lines and not self.added_lines:
+            return f"Removed {len(self.removed_lines)} line(s)"
+        else:
+            return f"Modified {len(self.added_lines) + len(self.removed_lines)} line(s)"
+
+
+@dataclass
 class FileChange:
     """Represents a single file change in git diff.
 
@@ -29,6 +62,8 @@ class FileChange:
         lines_removed: Number of lines deleted
         content_preview: Sample of changed content for context
         old_path: Previous path for renamed/copied files
+        hunks: List of diff hunks for detailed analysis
+        full_diff: Complete diff content (optional, for detailed mode)
     """
 
     path: str
@@ -37,6 +72,8 @@ class FileChange:
     lines_removed: int
     content_preview: str = ""
     old_path: Optional[str] = None
+    hunks: List[DiffHunk] = field(default_factory=list)
+    full_diff: Optional[str] = None
 
     @property
     def is_binary(self) -> bool:
