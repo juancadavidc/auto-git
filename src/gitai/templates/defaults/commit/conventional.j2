@@ -6,27 +6,65 @@
 {%- if changes.is_feature %}feat{% elif changes.is_fix %}fix{% elif changes.is_refactor %}refactor{% elif changes.is_docs %}docs{% elif changes.is_test %}test{% else %}chore{% endif -%}
 {%- endmacro -%}
 
-{%- macro format_file_list(files, max_files=5) -%}
-{%- for file in files[:max_files] -%}
-{{ file.path }}
-{%- if not loop.last %}, {% endif -%}
-{%- endfor -%}
-{%- if files|length > max_files %} (+{{ files|length - max_files }} more){% endif -%}
+{%- macro format_diff_content(file) -%}
+{%- if file.hunks %}
+```diff
+{%- for hunk in file.hunks[:3] %}
+{%- if hunk.removed_lines %}
+{%- for line in hunk.removed_lines[:8] %}
+- {{ line[:120] }}
+{%- endfor %}
+{%- if hunk.removed_lines|length > 8 %}
+  ... ({{ hunk.removed_lines|length - 8 }} more removed lines)
+{%- endif %}
+{%- endif %}
+{%- if hunk.added_lines %}
+{%- for line in hunk.added_lines[:8] %}
++ {{ line[:120] }}
+{%- endfor %}
+{%- if hunk.added_lines|length > 8 %}
+  ... ({{ hunk.added_lines|length - 8 }} more added lines)
+{%- endif %}
+{%- endif %}
+{%- endfor %}
+```
+{%- elif file.content_preview %}
+```diff
+{{ file.content_preview }}
+```
+{%- endif %}
 {%- endmacro -%}
 
-{{ get_change_type(changes) }}{% if changes.scope %}({{ changes.scope }}){% endif %}{% if changes.breaking_change %}!{% endif %}: {{ changes.summary|capitalize_first }}
+Generate a commit message for the following changes:
 
-{%- if changes.breaking_change %}
-
-BREAKING CHANGE: {{ changes.breaking_change }}
+## Summary
+- Files changed: {{ changes.affected_files|length }}
+- Lines added: +{{ changes.lines_added }}
+- Lines removed: -{{ changes.lines_deleted }}
+- Suggested type: {{ get_change_type(changes) }}
+{%- if changes.scope %}
+- Scope: {{ changes.scope }}
 {%- endif %}
 
-{%- if changes.body %}
+## Changed Files
+{% for file in changes.affected_files %}
+### {{ file.path }} ({{ file.change_type }}, +{{ file.lines_added }}/-{{ file.lines_deleted }})
+{%- if file.is_test %} [TEST]{% endif %}
+{%- if file.is_config %} [CONFIG]{% endif %}
+{%- if file.is_docs %} [DOCS]{% endif %}
 
-{{ changes.body }}
-{%- endif %}
+{{ format_diff_content(file) }}
+{% endfor %}
 
-{%- if changes.affected_files %}
+## Instructions
+Based on the code diff above, generate a commit message that:
+1. Has a clear, specific subject line in format: type(scope): description
+2. Describes WHAT the code changes actually do (not generic phrases like "update code")
+3. Uses imperative mood ("add", "fix", "refactor", not "added", "fixed")
+4. Is specific about the actual change (e.g., "add retry logic for API timeouts" not "improve API")
 
-Files: {{ format_file_list(changes.affected_files) }}
-{%- endif %}
+Output ONLY the commit message, nothing else. Format:
+
+type(scope): subject line here
+
+Optional body paragraph explaining why if the change is complex.

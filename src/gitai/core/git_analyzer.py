@@ -65,8 +65,8 @@ class GitAnalyzer:
             GitOperationError: If git operations fail
         """
         try:
-            # Get staged changes
-            staged_diff = self.repo.index.diff("HEAD")
+            # Get staged changes with patch content for detailed analysis
+            staged_diff = self.repo.index.diff("HEAD", create_patch=True)
 
             # Get untracked files if requested
             untracked_files = []
@@ -311,8 +311,24 @@ class GitAnalyzer:
         # Count lines (approximation from diff)
         lines_added, lines_removed = self._count_diff_lines(diff_item)
 
-        # Get content preview
-        content_preview = self._get_diff_item_preview(diff_item)
+        # Get content preview and full diff
+        content_preview = self._get_diff_item_preview(diff_item, max_lines=15)
+
+        # Parse hunks from diff for detailed analysis
+        hunks: List[DiffHunk] = []
+        full_diff: Optional[str] = None
+        try:
+            diff_data = diff_item.diff
+            if diff_data:
+                full_diff = (
+                    diff_data.decode("utf-8", errors="ignore")
+                    if isinstance(diff_data, bytes)
+                    else diff_data
+                )
+                if full_diff:
+                    hunks = self._parse_diff_hunks(full_diff)
+        except Exception:
+            pass
 
         return FileChange(
             path=file_path,
@@ -321,6 +337,8 @@ class GitAnalyzer:
             lines_removed=lines_removed,
             content_preview=content_preview,
             old_path=old_path,
+            hunks=hunks,
+            full_diff=full_diff,
         )
 
     def _count_diff_lines(self, diff_item: git.Diff) -> tuple[int, int]:
@@ -340,8 +358,16 @@ class GitAnalyzer:
         except Exception:
             return 0, 0
 
-    def _get_diff_item_preview(self, diff_item: git.Diff, max_lines: int = 5) -> str:
-        """Get a preview of the diff content."""
+    def _get_diff_item_preview(self, diff_item: git.Diff, max_lines: int = 15) -> str:
+        """Get a preview of the diff content.
+
+        Args:
+            diff_item: GitPython diff item
+            max_lines: Maximum number of changed lines to include (default 15)
+
+        Returns:
+            String with diff preview showing added/removed lines
+        """
         try:
             diff_data = diff_item.diff
             if diff_data is None:
@@ -363,7 +389,7 @@ class GitAnalyzer:
                 ):
                     continue
                 if line.startswith(("+", "-")) and len(content_lines) < max_lines:
-                    content_lines.append(line[:100])  # Truncate long lines
+                    content_lines.append(line[:150])  # Allow longer lines for context
 
             return "\n".join(content_lines)
         except Exception:
@@ -385,9 +411,18 @@ class GitAnalyzer:
         return ChangeType.MODIFIED
 
     def _get_diff_preview(
-        self, base_ref: str, file_path: str, max_lines: int = 5
+        self, base_ref: str, file_path: str, max_lines: int = 15
     ) -> str:
-        """Get a preview of file diff."""
+        """Get a preview of file diff.
+
+        Args:
+            base_ref: Base reference to compare against
+            file_path: Path to the file
+            max_lines: Maximum number of changed lines to include
+
+        Returns:
+            String with diff preview
+        """
         try:
             diff_output = self.repo.git.diff(f"{base_ref}...HEAD", "--", file_path)
             lines = diff_output.split("\n")
@@ -401,18 +436,27 @@ class GitAnalyzer:
                 ):
                     continue
                 if line.startswith(("+", "-")) and len(content_lines) < max_lines:
-                    content_lines.append(line[:100])
+                    content_lines.append(line[:150])
 
             return "\n".join(content_lines)
         except Exception:
             return ""
 
-    def _get_file_preview(self, file_path: Path, max_lines: int = 5) -> str:
-        """Get a preview of file content."""
+    def _get_file_preview(self, file_path: Path, max_lines: int = 15) -> str:
+        """Get a preview of file content for new files.
+
+        Args:
+            file_path: Path to the file
+            max_lines: Maximum number of lines to include
+
+        Returns:
+            String with file content preview (prefixed with + for new content)
+        """
         try:
             content = file_path.read_text(encoding="utf-8", errors="ignore")
             lines = content.split("\n")[:max_lines]
-            return "\n".join(line[:100] for line in lines)  # Truncate long lines
+            # Prefix with + to indicate new content
+            return "\n".join(f"+{line[:150]}" for line in lines)
         except Exception:
             return ""
 
