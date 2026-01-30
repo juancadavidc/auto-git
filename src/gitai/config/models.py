@@ -130,6 +130,20 @@ class LMStudioConfig(BaseModel):
         return v
 
 
+class LangfuseConfig(BaseModel):
+    """Langfuse observability configuration."""
+
+    enabled: bool = Field(
+        default=False, description="Whether Langfuse tracing is enabled"
+    )
+    public_key: Optional[str] = Field(default=None, description="Langfuse public key")
+    secret_key: Optional[str] = Field(default=None, description="Langfuse secret key")
+    host: str = Field(
+        default="https://cloud.langfuse.com",
+        description="Langfuse server URL",
+    )
+
+
 class TemplateConfig(BaseModel):
     """Template configuration."""
 
@@ -240,6 +254,11 @@ class GitAIConfig(BaseModel):
         default=None, description="Project configuration"
     )
 
+    # Observability
+    langfuse: Optional[LangfuseConfig] = Field(
+        default=None, description="Langfuse observability configuration"
+    )
+
     # Provider-specific configs
     ollama: Optional[OllamaConfig] = Field(
         default=None, description="Ollama configuration"
@@ -334,6 +353,16 @@ class GitAIConfig(BaseModel):
         paths.extend(self.templates.search_paths)
 
         return paths
+
+    def get_langfuse_config(self) -> Optional[Dict[str, Any]]:
+        """Get Langfuse configuration if enabled.
+
+        Returns:
+            Langfuse config dict if enabled, None otherwise
+        """
+        if self.langfuse and self.langfuse.enabled:
+            return self.langfuse.model_dump()
+        return None
 
     def get_user_templates_dir(self) -> Optional[Path]:
         """Get user templates directory."""
