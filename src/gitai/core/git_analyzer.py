@@ -550,33 +550,40 @@ class GitAnalyzer:
         current_line = 0
 
         for line in lines:
-            # Detect hunk header (e.g., @@ -10,5 +10,6 @@)
+            # Detect hunk header (e.g., @@ -10,5 +10,6 @@ def my_function():)
             if line.startswith("@@"):
                 if current_hunk and len(hunks) < max_hunks:
                     hunks.append(current_hunk)
 
-                # Parse hunk header to get line numbers
-                match = re.search(r"@@ -(\d+),?\d* \+(\d+),?\d* @@", line)
+                # Parse hunk header to get line numbers and function context
+                match = re.search(r"@@ -(\d+),?\d* \+(\d+),?\d* @@\s*(.*)", line)
                 if match:
                     start_line = int(match.group(2))
+                    function_context = match.group(3).strip()
                     current_line = start_line
                     current_hunk = DiffHunk(
-                        start_line=start_line, end_line=start_line, header=line
+                        start_line=start_line,
+                        end_line=start_line,
+                        header=line,
+                        function_context=function_context,
                     )
 
             elif current_hunk:
                 if line.startswith("+") and not line.startswith("+++"):
                     current_hunk.added_lines.append(line[1:])
+                    current_hunk.unified_lines.append(line)
                     current_line += 1
                     current_hunk.end_line = current_line
                 elif line.startswith("-") and not line.startswith("---"):
                     current_hunk.removed_lines.append(line[1:])
+                    current_hunk.unified_lines.append(line)
                 elif line.startswith(" "):
                     # Context line
                     if not current_hunk.added_lines and not current_hunk.removed_lines:
                         current_hunk.context_before.append(line[1:])
                     else:
                         current_hunk.context_after.append(line[1:])
+                    current_hunk.unified_lines.append(line)
                     current_line += 1
                     current_hunk.end_line = current_line
 

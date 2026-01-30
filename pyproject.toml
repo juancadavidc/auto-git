@@ -62,6 +62,9 @@ Issues = "https://github.com/gitai/gitai/issues"
 where = ["src"]
 include = ["gitai*"]
 
+[tool.setuptools.package-data]
+gitai = ["templates/defaults/**/*.j2", "templates/defaults/**/*.yaml", "templates/defaults/**/*.md"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 python_files = ["test_*.py"]

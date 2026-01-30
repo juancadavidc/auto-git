@@ -109,33 +109,36 @@ class LangfuseTracer:
         if not self.enabled or self._client is None:
             return provider.generate(request)
 
-        trace = None
         generation = None
         try:
-            # Create trace for the full operation
+            # Build metadata for the trace
             trace_metadata = self._build_trace_metadata(request, command, metadata)
-            trace = self._client.trace(
-                name=f"gitai-{command}",
-                metadata=trace_metadata,
-            )
+            trace_metadata["provider"] = provider.get_provider_name()
 
-            # Create generation span for the LLM call
+            # Extract project name from repository context for trace identification
+            project_name = self._extract_project_name(request)
+            trace_name = (
+                f"gitai-{command}:{project_name}" if project_name
+                else f"gitai-{command}"
+            )
+            if project_name:
+                trace_metadata["project"] = project_name
+
+            # Create generation observation (Langfuse v3 API)
             model_name = request.model or provider.get_default_model() or "unknown"
-            generation = trace.generation(
-                name=f"{command}-generation",
+            generation = self._client.start_observation(
+                name=trace_name,
+                as_type="generation",
                 model=model_name,
                 input={
                     "system_prompt": request.system_prompt or "",
                     "user_prompt": request.prompt,
                 },
                 model_parameters={
-                    "temperature": request.temperature,
-                    "max_tokens": request.max_tokens,
+                    "temperature": str(request.temperature) if request.temperature else None,
+                    "max_tokens": str(request.max_tokens) if request.max_tokens else None,
                 },
-                metadata={
-                    "provider": provider.get_provider_name(),
-                    "command": command,
-                },
+                metadata=trace_metadata,
             )
 
             # Execute the actual LLM call
@@ -144,23 +147,26 @@ class LangfuseTracer:
             latency_ms = (time.time() - start_time) * 1000
 
             # Record the output
-            generation.end(
+            usage: Dict[str, int] = {}
+            if response.tokens_used:
+                usage["total"] = response.tokens_used
+
+            generation.update(
                 output=response.content,
-                usage={
-                    "total_tokens": response.tokens_used,
-                },
+                usage_details=usage if usage else None,
                 metadata={
                     "latency_ms": round(latency_ms, 2),
                     "model_used": response.model_used,
                     "response_metadata": response.metadata or {},
                 },
             )
+            generation.end()
 
             log_with_context(
                 self.logger,
                 "info",
                 "Generation traced to Langfuse",
-                trace_id=trace.id,
+                trace_id=generation.trace_id,
                 latency_ms=round(latency_ms, 2),
                 model=response.model_used,
             )
@@ -172,11 +178,11 @@ class LangfuseTracer:
             # from the provider (tracing should never break generation)
             if generation is not None:
                 try:
-                    generation.end(
-                        output=str(e),
+                    generation.update(
                         level="ERROR",
                         status_message=f"Generation failed: {e}",
                     )
+                    generation.end()
                 except Exception:
                     pass
 
@@ -192,6 +198,20 @@ class LangfuseTracer:
 
         finally:
             self._flush_safe()
+
+    def _extract_project_name(self, request: GenerationRequest) -> str:
+        """Extract the project/repository name from the request context.
+
+        Looks for repository info in the request context to identify
+        which project generated this trace.
+        """
+        context = request.context or {}
+        repository = context.get("repository")
+        if repository is not None:
+            name = getattr(repository, "name", None)
+            if name:
+                return str(name)
+        return ""
 
     def _build_trace_metadata(
         self,

@@ -277,7 +277,7 @@ class ContextBuilder:
 
         return EnhancedDiffAnalysis(
             summary=summary,
-            scope=diff_analysis.get_change_scope(),
+            scope=self._derive_smart_scope(diff_analysis),
             is_feature=is_feature,
             is_fix=is_fix,
             is_refactor=is_refactor,
@@ -414,6 +414,40 @@ class ContextBuilder:
             return "Refactor code"
         else:
             return "Update code"
+
+    def _derive_smart_scope(self, diff_analysis: DiffAnalysis) -> str:
+        """Derive a meaningful scope from the changed files.
+
+        Extracts the deepest meaningful directory component shared by the
+        majority of changed files. Falls back to DiffAnalysis.get_change_scope().
+        """
+        # Skip generic top-level dirs
+        skip_dirs = {
+            "src", "lib", "tests", "test", "spec", "__pycache__",
+            "node_modules", "vendor", "build", "dist",
+        }
+
+        dirs: List[str] = []
+        for fc in diff_analysis.files_changed:
+            parts = fc.path.split("/")
+            # Exclude filename, keep meaningful directory components
+            meaningful = [
+                p for p in parts[:-1]
+                if p not in skip_dirs
+            ]
+            if meaningful:
+                dirs.append(meaningful[-1])  # deepest meaningful dir
+
+        if dirs:
+            from collections import Counter
+
+            counter = Counter(dirs)
+            most_common, count = counter.most_common(1)[0]
+            # Use if majority of files share this directory
+            if count >= len(dirs) * 0.5:
+                return most_common
+
+        return diff_analysis.get_change_scope()
 
     def _extract_related_issues(self, text: str) -> List[str]:
         """Extract issue references from text."""
