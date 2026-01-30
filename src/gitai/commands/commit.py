@@ -8,6 +8,7 @@ from typing import Optional
 from gitai.config.manager import create_config_manager
 from gitai.core.git_analyzer import GitAnalyzer
 from gitai.core.models import DiffAnalysis
+from gitai.observability.langfuse_tracer import LangfuseTracer
 from gitai.providers.base import GenerationRequest
 from gitai.providers.factory import provider_factory
 from gitai.templates.context import build_commit_context
@@ -157,14 +158,25 @@ def handle_commit(
 
         ai_provider = provider_factory.create_provider(provider, provider_config)
 
-        # 6. Generate commit message
+        # 6. Generate commit message (with optional Langfuse tracing)
         request = GenerationRequest(
             prompt=rendered_template,
             context=template_context,
             system_prompt=get_system_prompt("commit"),
         )
 
-        response = ai_provider.generate(request)
+        langfuse_config = config.get_langfuse_config()
+        if langfuse_config:
+            tracer = LangfuseTracer(langfuse_config)
+            response = tracer.trace_generation(
+                provider=ai_provider,
+                request=request,
+                command="commit",
+                metadata={"template": template},
+            )
+        else:
+            response = ai_provider.generate(request)
+
         commit_message = response.content.strip()
 
         log_with_context(

@@ -6,28 +6,21 @@
 {%- if changes.is_feature %}feat{% elif changes.is_fix %}fix{% elif changes.is_refactor %}refactor{% elif changes.is_docs %}docs{% elif changes.is_test %}test{% else %}chore{% endif -%}
 {%- endmacro -%}
 
-{%- macro format_diff_content(file) -%}
+{%- macro format_unified_diff(file) -%}
 {%- if file.hunks %}
+{%- for hunk in file.hunks[:5] %}
+{%- if hunk.function_context %}
+--- in {{ hunk.function_context }} ---
+{%- endif %}
 ```diff
-{%- for hunk in file.hunks[:3] %}
-{%- if hunk.removed_lines %}
-{%- for line in hunk.removed_lines[:8] %}
-- {{ line[:120] }}
+{%- for line in hunk.unified_lines[:15] %}
+{{ line[:150] }}
 {%- endfor %}
-{%- if hunk.removed_lines|length > 8 %}
-  ... ({{ hunk.removed_lines|length - 8 }} more removed lines)
+{%- if hunk.unified_lines|length > 15 %}
+  ... ({{ hunk.unified_lines|length - 15 }} more lines)
 {%- endif %}
-{%- endif %}
-{%- if hunk.added_lines %}
-{%- for line in hunk.added_lines[:8] %}
-+ {{ line[:120] }}
-{%- endfor %}
-{%- if hunk.added_lines|length > 8 %}
-  ... ({{ hunk.added_lines|length - 8 }} more added lines)
-{%- endif %}
-{%- endif %}
-{%- endfor %}
 ```
+{%- endfor %}
 {%- elif file.content_preview %}
 ```diff
 {{ file.content_preview }}
@@ -53,18 +46,15 @@ Generate a commit message for the following changes:
 {%- if file.is_config %} [CONFIG]{% endif %}
 {%- if file.is_docs %} [DOCS]{% endif %}
 
-{{ format_diff_content(file) }}
+{{ format_unified_diff(file) }}
 {% endfor %}
 
 ## Instructions
-Based on the code diff above, generate a commit message that:
-1. Has a clear, specific subject line in format: type(scope): description
-2. Describes WHAT the code changes actually do (not generic phrases like "update code")
-3. Uses imperative mood ("add", "fix", "refactor", not "added", "fixed")
-4. Is specific about the actual change (e.g., "add retry logic for API timeouts" not "improve API")
+Analyze the unified diff above. Write a commit message:
+1. Subject: type(scope): specific description naming the concrete code entity or behavior changed
+2. Scope = module or component name from directory/class, NOT a file extension
+3. Be precise: name functions, classes, config keys, endpoints, or values that changed
+4. Body ONLY if change spans multiple concerns - explain WHY, not WHAT. Otherwise omit body entirely.
+5. Do NOT restate the subject in the body. Do NOT start with "This commit" or "The changes".
 
-Output ONLY the commit message, nothing else. Format:
-
-type(scope): subject line here
-
-Optional body paragraph explaining why if the change is complex.
+Output ONLY the commit message.
