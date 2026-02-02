@@ -1,10 +1,20 @@
 """Base provider interface for AI content generation."""
 
+import json
+import time
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
-from gitai.utils.exceptions import ProviderConfigError
+import requests
+from requests.exceptions import ConnectionError, RequestException, Timeout
+
+from gitai.utils.exceptions import (
+    GenerationTimeoutError,
+    ProviderConfigError,
+    ProviderError,
+    ProviderUnavailableError,
+)
 
 
 @dataclass
@@ -200,3 +210,162 @@ class BaseProvider(ABC):
                     f"Configuration key '{key}' must be of type {expected_type.__name__}, "
                     f"got {type(config[key]).__name__}"
                 )
+
+    def supports_tool_calling(self) -> bool:
+        """Check if provider supports tool-calling (agentic mode).
+
+        Returns:
+            True if provider supports chat_with_tools(), False otherwise.
+        """
+        return False
+
+    def chat_with_tools(
+        self,
+        messages: List[Dict[str, Any]],
+        tools: List[Dict[str, Any]],
+        temperature: Optional[float] = None,
+        max_tokens: Optional[int] = None,
+    ) -> Dict[str, Any]:
+        """Chat with tool-calling support.
+
+        Args:
+            messages: Conversation history in OpenAI format.
+            tools: Tool definitions in OpenAI function-calling format.
+            temperature: Sampling temperature.
+            max_tokens: Maximum tokens to generate.
+
+        Returns:
+            Dict with keys: content, tool_calls, model, tokens_used, metadata.
+
+        Raises:
+            NotImplementedError: If provider does not support tool calling.
+        """
+        raise NotImplementedError(
+            f"{self.get_provider_name()} does not support tool calling. "
+            "Use a provider that supports it (ollama, openai, lmstudio)."
+        )
+
+    def _openai_compatible_chat_with_tools(
+        self,
+        endpoint_url: str,
+        headers: Dict[str, str],
+        model: str,
+        messages: List[Dict[str, Any]],
+        tools: List[Dict[str, Any]],
+        temperature: Optional[float] = None,
+        max_tokens: Optional[int] = None,
+        timeout: int = 120,
+        max_retries: int = 3,
+        retry_delay: int = 1,
+    ) -> Dict[str, Any]:
+        """Shared implementation for OpenAI-compatible chat with tools.
+
+        Works with OpenAI, Ollama (/v1/chat/completions), and LMStudio.
+
+        Args:
+            endpoint_url: Full URL to the chat completions endpoint.
+            headers: HTTP headers (auth, content-type).
+            model: Model name.
+            messages: Conversation messages in OpenAI format.
+            tools: Tool definitions in OpenAI format.
+            temperature: Sampling temperature.
+            max_tokens: Max tokens.
+            timeout: Request timeout in seconds.
+            max_retries: Number of retries.
+            retry_delay: Base delay between retries.
+
+        Returns:
+            Dict with: content, tool_calls (list of dicts with id/name/arguments),
+            model, tokens_used, metadata.
+        """
+        payload: Dict[str, Any] = {
+            "model": model,
+            "messages": messages,
+            "stream": False,
+        }
+
+        if tools:
+            payload["tools"] = tools
+
+        if temperature is not None:
+            payload["temperature"] = temperature
+        if max_tokens is not None:
+            payload["max_tokens"] = max_tokens
+
+        last_error: Optional[Exception] = None
+
+        for attempt in range(max_retries):
+            try:
+                start_time = time.time()
+
+                response = requests.post(
+                    endpoint_url,
+                    headers=headers,
+                    json=payload,
+                    timeout=timeout,
+                )
+                response.raise_for_status()
+
+                latency_ms = (time.time() - start_time) * 1000
+                result = response.json()
+
+                message = result.get("choices", [{}])[0].get("message", {})
+                content = message.get("content") or ""
+
+                # Parse tool calls
+                tool_calls = []
+                raw_tool_calls = message.get("tool_calls") or []
+                for i, tc in enumerate(raw_tool_calls):
+                    func = tc.get("function", {})
+                    args_raw = func.get("arguments", "{}")
+                    if isinstance(args_raw, str):
+                        try:
+                            args = json.loads(args_raw)
+                        except json.JSONDecodeError:
+                            args = {}
+                    else:
+                        args = args_raw
+
+                    tool_calls.append({
+                        "id": tc.get("id", f"call_{i}"),
+                        "name": func.get("name", ""),
+                        "arguments": args,
+                    })
+
+                # Token usage
+                usage = result.get("usage", {})
+                tokens_used = usage.get("total_tokens")
+
+                return {
+                    "content": content,
+                    "tool_calls": tool_calls,
+                    "model": result.get("model", model),
+                    "tokens_used": tokens_used,
+                    "metadata": {
+                        "latency_ms": round(latency_ms, 2),
+                        "finish_reason": result.get("choices", [{}])[0].get(
+                            "finish_reason"
+                        ),
+                        "usage": usage,
+                    },
+                }
+
+            except Timeout:
+                last_error = GenerationTimeoutError(
+                    f"Request timed out after {timeout}s"
+                )
+            except ConnectionError as e:
+                last_error = ProviderUnavailableError(
+                    f"Could not connect: {e}"
+                )
+            except RequestException as e:
+                last_error = ProviderError(f"Request failed: {e}")
+            except Exception as e:
+                last_error = ProviderError(f"Unexpected error: {e}")
+
+            if attempt < max_retries - 1:
+                time.sleep(retry_delay * (attempt + 1))
+
+        raise last_error or ProviderError(
+            "chat_with_tools failed after all retries"
+        )

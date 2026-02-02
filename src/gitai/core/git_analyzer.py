@@ -65,8 +65,10 @@ class GitAnalyzer:
             GitOperationError: If git operations fail
         """
         try:
-            # Get staged changes
-            staged_diff = self.repo.index.diff("HEAD")
+            # Get staged changes (create_patch=True to include actual diff content)
+            # Use head.commit.diff() so the diff direction is HEAD → index,
+            # producing correct -/+ lines (old = HEAD, new = staged).
+            staged_diff = self.repo.head.commit.diff(create_patch=True)
 
             # Get untracked files if requested
             untracked_files = []
@@ -314,6 +316,19 @@ class GitAnalyzer:
         # Get content preview
         content_preview = self._get_diff_item_preview(diff_item)
 
+        # Extract full diff text for agentic mode
+        full_diff_text = None
+        try:
+            diff_data = diff_item.diff
+            if diff_data:
+                full_diff_text = (
+                    diff_data.decode("utf-8", errors="ignore")
+                    if isinstance(diff_data, bytes)
+                    else diff_data
+                )
+        except Exception:
+            pass
+
         return FileChange(
             path=file_path,
             change_type=change_type,
@@ -321,6 +336,7 @@ class GitAnalyzer:
             lines_removed=lines_removed,
             content_preview=content_preview,
             old_path=old_path,
+            full_diff=full_diff_text,
         )
 
     def _count_diff_lines(self, diff_item: git.Diff) -> tuple[int, int]:

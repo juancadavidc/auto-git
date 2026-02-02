@@ -130,6 +130,44 @@ class LMStudioConfig(BaseModel):
         return v
 
 
+class AgenticConfig(BaseModel):
+    """Agentic mode configuration."""
+
+    enabled: bool = Field(
+        default=False, description="Enable agentic mode by default"
+    )
+    max_iterations: int = Field(
+        default=10, description="Maximum tool-calling iterations"
+    )
+    max_diff_lines: int = Field(
+        default=200,
+        description="Max diff lines per file before truncation in agentic tools",
+    )
+
+    @field_validator("max_iterations")  # type: ignore[misc]
+    def validate_max_iterations(cls, v: int) -> int:
+        if v < 1 or v > 20:
+            raise ValueError("max_iterations must be between 1 and 20")
+        return v
+
+
+class LangfuseConfig(BaseModel):
+    """Langfuse observability configuration."""
+
+    enabled: bool = Field(
+        default=False, description="Whether Langfuse tracing is enabled"
+    )
+    public_key: Optional[str] = Field(
+        default=None, description="Langfuse public key"
+    )
+    secret_key: Optional[str] = Field(
+        default=None, description="Langfuse secret key"
+    )
+    host: str = Field(
+        default="https://cloud.langfuse.com", description="Langfuse server URL"
+    )
+
+
 class TemplateConfig(BaseModel):
     """Template configuration."""
 
@@ -238,6 +276,14 @@ class GitAIConfig(BaseModel):
     team: Optional[TeamConfig] = Field(default=None, description="Team configuration")
     project: Optional[ProjectConfig] = Field(
         default=None, description="Project configuration"
+    )
+
+    # Feature configs
+    agentic: Optional[AgenticConfig] = Field(
+        default=None, description="Agentic mode configuration"
+    )
+    langfuse: Optional[LangfuseConfig] = Field(
+        default=None, description="Langfuse observability configuration"
     )
 
     # Provider-specific configs

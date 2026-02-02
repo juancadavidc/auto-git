@@ -21,6 +21,9 @@ Why: {{ changes.rationale }}
 Modified files:
 {%- for file in changes.affected_files %}
   - {{ file.path }}{% if file.change_type %} ({{ file.change_type }}){% endif %}
+{%- if file.content_preview %}
+{{ file.content_preview }}
+{%- endif %}
 {%- endfor %}
 {%- endif %}
 

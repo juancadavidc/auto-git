@@ -15,6 +15,9 @@ from gitai.utils.exceptions import (
 )
 from gitai.utils.logger import log_with_context, setup_logger
 
+# Longer timeout for agentic mode (tool-calling needs more time)
+_AGENTIC_TIMEOUT = 120
+
 
 class OllamaProvider(BaseProvider):
     """Ollama provider for local AI content generation.
@@ -245,6 +248,46 @@ class OllamaProvider(BaseProvider):
         )
 
         raise last_error or ProviderError("Generation failed after all retries")
+
+    def supports_tool_calling(self) -> bool:
+        """Ollama supports tool calling via OpenAI-compatible endpoint."""
+        return True
+
+    def chat_with_tools(
+        self,
+        messages: List[Dict[str, Any]],
+        tools: List[Dict[str, Any]],
+        temperature: Optional[float] = None,
+        max_tokens: Optional[int] = None,
+    ) -> Dict[str, Any]:
+        """Chat with tool-calling via Ollama's OpenAI-compatible endpoint.
+
+        Uses /v1/chat/completions instead of /api/generate.
+        """
+        endpoint = f"{self.base_url}/v1/chat/completions"
+        headers = {"Content-Type": "application/json"}
+
+        log_with_context(
+            self.logger,
+            "info",
+            "Ollama chat_with_tools",
+            model=self.model,
+            tools_count=len(tools),
+            messages_count=len(messages),
+        )
+
+        return self._openai_compatible_chat_with_tools(
+            endpoint_url=endpoint,
+            headers=headers,
+            model=self.model,
+            messages=messages,
+            tools=tools,
+            temperature=temperature,
+            max_tokens=max_tokens,
+            timeout=max(self.timeout, _AGENTIC_TIMEOUT),
+            max_retries=self.max_retries,
+            retry_delay=self.retry_delay,
+        )
 
     def supports_streaming(self) -> bool:
         """Check if provider supports streaming responses.

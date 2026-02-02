@@ -1,5 +1,6 @@
 """Commit command implementation."""
 
+import json
 import logging
 import subprocess
 from pathlib import Path
@@ -33,6 +34,7 @@ def handle_commit(
     provider: Optional[str],
     preview: bool,
     include_untracked: bool,
+    agentic: bool = False,
     verbose: bool = False,
     config_path: Optional[Path] = None,
 ) -> Optional[str]:
@@ -158,26 +160,113 @@ def handle_commit(
         ai_provider = provider_factory.create_provider(provider, provider_config)
 
         # 6. Generate commit message
-        request = GenerationRequest(
-            prompt=rendered_template,
-            context=template_context,
-            system_prompt=get_system_prompt("commit"),
-        )
+        if agentic and ai_provider.supports_tool_calling():
+            # Agentic mode: LLM uses tools to inspect diffs iteratively
+            from gitai.agentic.loop import AgenticLoop
+            from gitai.utils.prompts import get_agentic_system_prompt
 
-        response = ai_provider.generate(request)
-        commit_message = response.content.strip()
+            log_with_context(
+                logger, "info", "Using agentic mode with tool-calling"
+            )
 
-        log_with_context(
-            logger,
-            "info",
-            "Commit message generated",
-            message_length=len(commit_message),
-            model_used=response.model_used,
-        )
+            # Setup Langfuse tracer if configured
+            tracer = None
+            langfuse_config = config.langfuse
+            if langfuse_config and langfuse_config.enabled:
+                try:
+                    from gitai.observability.langfuse_tracer import (
+                        LangfuseAgenticTracer,
+                    )
+
+                    tracer = LangfuseAgenticTracer(langfuse_config.model_dump())
+                except Exception as e:
+                    logger.warning(f"Failed to initialize Langfuse tracer: {e}")
+
+            # Get agentic config
+            agentic_config = config.agentic
+            max_iterations = (
+                agentic_config.max_iterations if agentic_config else 10
+            )
+
+            loop = AgenticLoop(
+                provider=ai_provider,
+                diff_analysis=diff_analysis,
+                max_iterations=max_iterations,
+                tracer=tracer,
+            )
+
+            agentic_result = loop.run(
+                system_prompt=get_agentic_system_prompt("commit"),
+                user_prompt=rendered_template,
+            )
+
+            commit_message = _extract_message(agentic_result.content.strip())
+
+            log_with_context(
+                logger,
+                "info",
+                "Commit message generated (agentic)",
+                message_length=len(commit_message),
+                model_used=agentic_result.model_used,
+                iterations=agentic_result.iterations,
+                tool_calls=len(agentic_result.tool_calls_made),
+            )
+
+        elif agentic and not ai_provider.supports_tool_calling():
+            # Provider doesn't support tools — warn and fall back
+            log_with_context(
+                logger,
+                "warning",
+                "Provider does not support agentic mode, falling back to single-shot",
+                provider=provider,
+            )
+            request = GenerationRequest(
+                prompt=rendered_template,
+                context=template_context,
+                system_prompt=get_system_prompt("commit"),
+            )
+            response = ai_provider.generate(request)
+            commit_message = response.content.strip()
+        else:
+            # Standard single-shot generation
+            request = GenerationRequest(
+                prompt=rendered_template,
+                context=template_context,
+                system_prompt=get_system_prompt("commit"),
+            )
+
+            # Setup Langfuse tracer for single-shot if configured
+            langfuse_config = config.langfuse
+            if langfuse_config and langfuse_config.enabled:
+                try:
+                    from gitai.observability.langfuse_tracer import (
+                        LangfuseAgenticTracer,
+                    )
+
+                    tracer = LangfuseAgenticTracer(langfuse_config.model_dump())
+                    response = tracer.trace_generation(
+                        ai_provider, request, command="commit"
+                    )
+                except Exception as e:
+                    logger.warning(f"Langfuse tracing failed: {e}")
+                    response = ai_provider.generate(request)
+            else:
+                response = ai_provider.generate(request)
+
+            commit_message = response.content.strip()
+
+            log_with_context(
+                logger,
+                "info",
+                "Commit message generated",
+                message_length=len(commit_message),
+                model_used=response.model_used,
+            )
 
         # 7. Apply or preview
         if preview:
-            return _format_preview(commit_message, template, provider)
+            mode = "agentic" if agentic else "single-shot"
+            return _format_preview(commit_message, template, provider, mode)
         else:
             return _apply_commit(commit_message, logger)
 
@@ -224,18 +313,21 @@ Keep it under 50 characters and use present tense."""
     return base_prompt
 
 
-def _format_preview(commit_message: str, template: str, provider: str) -> str:
+def _format_preview(
+    commit_message: str, template: str, provider: str, mode: str = "single-shot"
+) -> str:
     """Format commit message for preview display.
 
     Args:
         commit_message: Generated commit message
         template: Template used
         provider: AI provider used
+        mode: Generation mode (single-shot or agentic)
 
     Returns:
         Formatted preview string
     """
-    return f"""Generated Commit Message (template: {template}, provider: {provider}):
+    return f"""Generated Commit Message (template: {template}, provider: {provider}, mode: {mode}):
 
 {commit_message}
 
@@ -284,3 +376,29 @@ def _apply_commit(commit_message: str, logger: logging.Logger) -> Optional[str]:
             raise GitAIError(f"Git commit failed: {e.stderr.strip()}")
     except Exception as e:
         raise GitAIError(f"Failed to apply commit: {e}")
+
+
+def _extract_message(raw: str) -> str:
+    """Extract plain commit message from potentially JSON-wrapped responses.
+
+    Some models return JSON like {"type": "commit_message", "message": "..."}.
+    This extracts the actual message string.
+
+    Args:
+        raw: Raw model output (plain text or JSON).
+
+    Returns:
+        Clean commit message string.
+    """
+    stripped = raw.strip()
+    if stripped.startswith("{"):
+        try:
+            data = json.loads(stripped)
+            if isinstance(data, dict):
+                # Try common keys where the message might be
+                for key in ("message", "commit_message", "content", "text"):
+                    if key in data and isinstance(data[key], str):
+                        return data[key].strip()
+        except (json.JSONDecodeError, TypeError):
+            pass
+    return stripped

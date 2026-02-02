@@ -2,7 +2,7 @@
 
 import os
 import time
-from typing import Any, Dict
+from typing import Any, Dict, List, Optional
 
 import requests
 
@@ -238,6 +238,43 @@ class OpenAIProvider(BaseProvider):
 
         # This should never be reached, but just in case
         raise ProviderError("Unexpected error in OpenAI generation")
+
+    def supports_tool_calling(self) -> bool:
+        """OpenAI supports tool calling natively."""
+        return True
+
+    def chat_with_tools(
+        self,
+        messages: List[Dict[str, Any]],
+        tools: List[Dict[str, Any]],
+        temperature: Optional[float] = None,
+        max_tokens: Optional[int] = None,
+    ) -> Dict[str, Any]:
+        """Chat with tool-calling via OpenAI chat completions."""
+        endpoint = f"{self.base_url}/chat/completions"
+        headers = {
+            "Authorization": f"Bearer {self.api_key}",
+            "Content-Type": "application/json",
+        }
+
+        log_with_context(
+            self.logger,
+            "info",
+            "OpenAI chat_with_tools",
+            model=self.model,
+            tools_count=len(tools),
+        )
+
+        return self._openai_compatible_chat_with_tools(
+            endpoint_url=endpoint,
+            headers=headers,
+            model=self.model,
+            messages=messages,
+            tools=tools,
+            temperature=temperature or self.temperature,
+            max_tokens=max_tokens or self.max_tokens,
+            timeout=self.timeout,
+        )
 
     def get_available_models(self) -> list[str]:
         """Get list of available models for OpenAI.

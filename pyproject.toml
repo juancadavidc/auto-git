@@ -37,6 +37,9 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+observability = [
+    "langfuse>=2.0.0",
+]
 dev = [
     "pytest>=7.0.0",
     "pytest-cov>=4.0.0",
@@ -46,6 +49,7 @@ dev = [
     "flake8>=5.0.0",
     "requests-mock>=1.9.0",
     "pre-commit>=2.20.0",
+    "langfuse>=2.0.0",
 ]
 
 [project.scripts]
@@ -85,6 +89,10 @@ strict_equality = true
 
 [[tool.mypy.overrides]]
 module = "git.*"
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "langfuse.*"
 ignore_missing_imports = true
 
 [tool.black]

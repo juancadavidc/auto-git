@@ -29,4 +29,11 @@ BREAKING CHANGE: {{ changes.breaking_change }}
 {%- if changes.affected_files %}
 
 Files: {{ format_file_list(changes.affected_files) }}
+{%- for file in changes.affected_files %}
+{%- if file.content_preview %}
+
+Diff for {{ file.path }}:
+{{ file.content_preview }}
+{%- endif %}
+{%- endfor %}
 {%- endif %}

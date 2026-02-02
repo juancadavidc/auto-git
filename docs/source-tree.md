@@ -42,10 +42,17 @@ src/gitai/
 ├── cli.py                       # CLI entry point and main commands
 ├── commands/                    # Command implementations
 │   ├── __init__.py
-│   ├── commit.py               # gitai commit command
+│   ├── commit.py               # gitai commit command (single-shot + agentic)
 │   ├── pr.py                   # gitai pr command
 │   ├── config.py               # gitai config command
 │   └── templates.py            # gitai templates command
+├── agentic/                     # Agentic tool-calling loop
+│   ├── __init__.py             # Exports AgenticLoop, AgenticResult
+│   ├── loop.py                 # AgenticLoop orchestrator
+│   └── tools.py                # DiffInspectionTools (list_changed_files, get_file_diff, get_change_summary)
+├── observability/               # LLM observability and tracing
+│   ├── __init__.py             # Exports LangfuseAgenticTracer
+│   └── langfuse_tracer.py     # Langfuse integration (single-shot + agentic spans)
 ├── core/                        # Core business logic
 │   ├── __init__.py
 │   ├── git_analyzer.py         # Git operations and diff analysis
@@ -60,17 +67,20 @@ src/gitai/
 ├── config/                      # Configuration system
 │   ├── __init__.py
 │   ├── manager.py              # Configuration loading and merging
-│   ├── models.py               # Pydantic configuration models
+│   ├── models.py               # Pydantic configuration models (+ AgenticConfig, LangfuseConfig)
 │   └── defaults.py             # Default configuration values
 ├── providers/                   # AI provider implementations
 │   ├── __init__.py
-│   ├── base.py                 # Base provider interface
-│   ├── ollama.py               # Ollama provider implementation
-│   ├── openai.py               # OpenAI provider implementation
+│   ├── base.py                 # Base provider interface (+ _openai_compatible_chat_with_tools helper)
+│   ├── ollama.py               # Ollama provider (generate + chat_with_tools)
+│   ├── openai.py               # OpenAI provider (generate + chat_with_tools)
+│   ├── anthropic.py            # Anthropic provider (generate only, no agentic)
+│   ├── lmstudio.py             # LMStudio provider (generate + chat_with_tools)
 │   └── factory.py              # Provider factory and selection
 └── utils/                       # Utilities and helpers
     ├── __init__.py
     ├── logger.py               # Logging configuration
+    ├── prompts.py              # System prompts (single-shot + agentic)
     ├── exceptions.py           # Custom exception classes
     ├── file_utils.py           # File operations utilities
     └── validation.py           # Input validation helpers

@@ -42,6 +42,7 @@ pytest
 gitai --help
 gitai config --global
 gitai commit --preview
+gitai commit --preview --agentic    # Agentic mode with tool-calling
 gitai pr --base main
 gitai templates --list
 ```
@@ -56,12 +57,15 @@ GitAI is a Python CLI tool for AI-powered commit message and PR description gene
 - **Commands (`src/gitai/commands/`)** - Individual command implementations (commit, pr, config, templates)
 - **Git Analysis (`src/gitai/core/git_analyzer.py`)** - Extracts meaningful change information from git repositories
 - **AI Providers (`src/gitai/providers/`)** - Pluggable AI backends (OpenAI, Anthropic, Ollama, LMStudio)
+- **Agentic Loop (`src/gitai/agentic/`)** - Tool-calling loop where the LLM inspects diffs iteratively before generating output
+- **Observability (`src/gitai/observability/`)** - Langfuse integration for tracing LLM calls and tool executions
 - **Template System (`src/gitai/templates/`)** - Jinja2-based templating for formatting output
 - **Configuration (`src/gitai/config/`)** - Hierarchical config management (user/team/project)
 
 ### Key Design Patterns
 
 - **Provider Pattern**: AI providers implement `BaseProvider` interface for consistent API
+- **Agentic Pattern**: LLM calls tools (`list_changed_files`, `get_file_diff`, `get_change_summary`) in a loop to inspect diffs before generating commit messages. Uses OpenAI-compatible `/v1/chat/completions` format shared by Ollama, OpenAI, and LMStudio.
 - **Template Hierarchy**: User > Team > Project > Default template resolution
 - **Configuration Layers**: Multi-tier configuration with environment variable support
 - **Error Handling**: Custom exceptions with helpful error messages and suggestions
@@ -89,5 +93,6 @@ GitAI is a Python CLI tool for AI-powered commit message and PR description gene
 
 - Python 3.9+
 - Core: click, GitPython, Jinja2, PyYAML, requests, pydantic
-- Dev: pytest, black, isort, mypy, flake8, bandit
+- Optional: langfuse (for LLM observability, install with `pip install -e ".[observability]"`)
+- Dev: pytest, black, isort, mypy, flake8, bandit, langfuse
 - Test coverage requirement: 80% minimum
