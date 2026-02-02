@@ -1,0 +1,34 @@
+# GitAI Configuration with Langfuse self-hosted observability
+#
+# Setup:
+#   1. Start Langfuse: docker compose up -d
+#   2. Copy this file: cp example-configs/langfuse-local-config.yaml ~/.config/gitai/config.yaml
+#   3. Run: gitai commit --preview
+#   4. Open http://localhost:3000 to see traces
+
+providers:
+  ollama:
+    name: ollama
+    enabled: true
+    priority: 1
+    config: {}
+
+# Ollama configuration
+ollama:
+  base_url: "http://localhost:11434"
+  model: "qwen2.5:7b"
+  timeout: 30
+  temperature: 0.7
+
+# Langfuse observability (self-hosted via docker compose)
+# Keys match the LANGFUSE_INIT_PROJECT_* values in .env.langfuse
+langfuse:
+  enabled: true
+  public_key: "pk-lf-local-gitai"
+  secret_key: "sk-lf-local-gitai"
+  host: "http://localhost:3000"
+
+# Template configuration
+templates:
+  default_commit_template: conventional
+  default_pr_template: github

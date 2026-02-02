@@ -34,6 +34,7 @@ dependencies = [
     "PyYAML>=6.0",
     "requests>=2.28.0",
     "pydantic>=2.0.0",
+    "langfuse>=2.0.0",
 ]
 
 [project.optional-dependencies]
@@ -64,6 +65,9 @@ Issues = "https://github.com/gitai/gitai/issues"
 [tool.setuptools.packages.find]
 where = ["src"]
 include = ["gitai*"]
+
+[tool.setuptools.package-data]
+gitai = ["templates/defaults/**/*.j2", "templates/defaults/**/*.yaml", "templates/defaults/**/*.md"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

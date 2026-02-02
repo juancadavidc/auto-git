@@ -356,8 +356,16 @@ class GitAnalyzer:
         except Exception:
             return 0, 0
 
-    def _get_diff_item_preview(self, diff_item: git.Diff, max_lines: int = 5) -> str:
-        """Get a preview of the diff content."""
+    def _get_diff_item_preview(self, diff_item: git.Diff, max_lines: int = 15) -> str:
+        """Get a preview of the diff content.
+
+        Args:
+            diff_item: GitPython diff item
+            max_lines: Maximum number of changed lines to include (default 15)
+
+        Returns:
+            String with diff preview showing added/removed lines
+        """
         try:
             diff_data = diff_item.diff
             if diff_data is None:
@@ -379,7 +387,7 @@ class GitAnalyzer:
                 ):
                     continue
                 if line.startswith(("+", "-")) and len(content_lines) < max_lines:
-                    content_lines.append(line[:100])  # Truncate long lines
+                    content_lines.append(line[:150])  # Allow longer lines for context
 
             return "\n".join(content_lines)
         except Exception:
@@ -401,9 +409,18 @@ class GitAnalyzer:
         return ChangeType.MODIFIED
 
     def _get_diff_preview(
-        self, base_ref: str, file_path: str, max_lines: int = 5
+        self, base_ref: str, file_path: str, max_lines: int = 15
     ) -> str:
-        """Get a preview of file diff."""
+        """Get a preview of file diff.
+
+        Args:
+            base_ref: Base reference to compare against
+            file_path: Path to the file
+            max_lines: Maximum number of changed lines to include
+
+        Returns:
+            String with diff preview
+        """
         try:
             diff_output = self.repo.git.diff(f"{base_ref}...HEAD", "--", file_path)
             lines = diff_output.split("\n")
@@ -417,18 +434,27 @@ class GitAnalyzer:
                 ):
                     continue
                 if line.startswith(("+", "-")) and len(content_lines) < max_lines:
-                    content_lines.append(line[:100])
+                    content_lines.append(line[:150])
 
             return "\n".join(content_lines)
         except Exception:
             return ""
 
-    def _get_file_preview(self, file_path: Path, max_lines: int = 5) -> str:
-        """Get a preview of file content."""
+    def _get_file_preview(self, file_path: Path, max_lines: int = 15) -> str:
+        """Get a preview of file content for new files.
+
+        Args:
+            file_path: Path to the file
+            max_lines: Maximum number of lines to include
+
+        Returns:
+            String with file content preview (prefixed with + for new content)
+        """
         try:
             content = file_path.read_text(encoding="utf-8", errors="ignore")
             lines = content.split("\n")[:max_lines]
-            return "\n".join(line[:100] for line in lines)  # Truncate long lines
+            # Prefix with + to indicate new content
+            return "\n".join(f"+{line[:150]}" for line in lines)
         except Exception:
             return ""
 
@@ -522,33 +548,40 @@ class GitAnalyzer:
         current_line = 0
 
         for line in lines:
-            # Detect hunk header (e.g., @@ -10,5 +10,6 @@)
+            # Detect hunk header (e.g., @@ -10,5 +10,6 @@ def my_function():)
             if line.startswith("@@"):
                 if current_hunk and len(hunks) < max_hunks:
                     hunks.append(current_hunk)
 
-                # Parse hunk header to get line numbers
-                match = re.search(r"@@ -(\d+),?\d* \+(\d+),?\d* @@", line)
+                # Parse hunk header to get line numbers and function context
+                match = re.search(r"@@ -(\d+),?\d* \+(\d+),?\d* @@\s*(.*)", line)
                 if match:
                     start_line = int(match.group(2))
+                    function_context = match.group(3).strip()
                     current_line = start_line
                     current_hunk = DiffHunk(
-                        start_line=start_line, end_line=start_line, header=line
+                        start_line=start_line,
+                        end_line=start_line,
+                        header=line,
+                        function_context=function_context,
                     )
 
             elif current_hunk:
                 if line.startswith("+") and not line.startswith("+++"):
                     current_hunk.added_lines.append(line[1:])
+                    current_hunk.unified_lines.append(line)
                     current_line += 1
                     current_hunk.end_line = current_line
                 elif line.startswith("-") and not line.startswith("---"):
                     current_hunk.removed_lines.append(line[1:])
+                    current_hunk.unified_lines.append(line)
                 elif line.startswith(" "):
                     # Context line
                     if not current_hunk.added_lines and not current_hunk.removed_lines:
                         current_hunk.context_before.append(line[1:])
                     else:
                         current_hunk.context_after.append(line[1:])
+                    current_hunk.unified_lines.append(line)
                     current_line += 1
                     current_hunk.end_line = current_line
 
