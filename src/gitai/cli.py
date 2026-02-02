@@ -45,8 +45,8 @@ def main(ctx: click.Context, verbose: bool, config_path: Optional[Path]) -> None
     if verbose:
         import logging
 
-        logging.getLogger("gitai").setLevel(logging.DEBUG)
-        logger.debug("Verbose logging enabled")
+        logging.getLogger("gitai").setLevel(logging.INFO)
+        logger.info("Verbose logging enabled")
 
 
 @main.command()  # type: ignore[misc]

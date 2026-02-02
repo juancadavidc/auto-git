@@ -381,6 +381,16 @@ class GitAIConfig(BaseModel):
 
         return paths
 
+    def get_langfuse_config(self) -> Optional[Dict[str, Any]]:
+        """Get Langfuse configuration if enabled.
+
+        Returns:
+            Langfuse config dict if enabled, None otherwise
+        """
+        if self.langfuse and self.langfuse.enabled:
+            return self.langfuse.model_dump()
+        return None
+
     def get_user_templates_dir(self) -> Optional[Path]:
         """Get user templates directory."""
         if self.user and self.user.templates_dir:

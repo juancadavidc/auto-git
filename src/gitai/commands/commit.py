@@ -9,6 +9,7 @@ from typing import Optional
 from gitai.config.manager import create_config_manager
 from gitai.core.git_analyzer import GitAnalyzer
 from gitai.core.models import DiffAnalysis
+from gitai.observability.langfuse_tracer import LangfuseTracer
 from gitai.providers.base import GenerationRequest
 from gitai.providers.factory import provider_factory
 from gitai.templates.context import build_commit_context
