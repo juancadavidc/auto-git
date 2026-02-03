@@ -1,0 +1,43 @@
+# GitAI Configuration with Agentic Mode + Langfuse Observability
+#
+# Agentic mode uses tool-calling to let the LLM inspect diffs iteratively
+# before generating commit messages. Supported by Ollama, OpenAI, and LMStudio.
+#
+# Usage:
+#   cp example-configs/agentic-config.yaml ~/.config/gitai/config.yaml
+#   pip install -e ".[observability]"   # Install Langfuse (optional)
+#   gitai commit --preview --agentic
+
+providers:
+  ollama:
+    name: ollama
+    enabled: true
+    priority: 1
+    config: {}
+
+ollama:
+  base_url: "http://localhost:11434"
+  model: "qwen2.5:7b"          # Must support tool-calling
+  timeout: 60
+  temperature: 0.7
+  max_tokens: 1000
+
+# Agentic mode configuration
+agentic:
+  enabled: false                # Set true to make agentic the default mode
+  max_iterations: 10            # Max tool-calling rounds (1-20)
+  max_diff_lines: 200           # Truncate large file diffs beyond this limit
+
+# Template configuration
+templates:
+  default_commit_template: conventional
+  default_pr_template: github
+
+# Langfuse observability (optional)
+# Traces every LLM call and tool execution for debugging and evaluation.
+# Sign up at https://cloud.langfuse.com or self-host.
+langfuse:
+  enabled: false
+  public_key: "pk-lf-your-public-key"
+  secret_key: "sk-lf-your-secret-key"
+  host: "https://cloud.langfuse.com"

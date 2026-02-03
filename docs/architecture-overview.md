@@ -23,6 +23,11 @@ GitAI is a Python-based CLI tool that automates the generation of commit message
 └─────────────────────┬───────────────────────────────────────┘
                       │
 ┌─────────────────────▼───────────────────────────────────────┐
+│                  Agentic Layer (optional)                   │
+│   AgenticLoop  │  DiffInspectionTools  │  Langfuse Tracer  │
+└─────────────────────┬───────────────────────────────────────┘
+                      │
+┌─────────────────────▼───────────────────────────────────────┐
 │                 Infrastructure Layer                        │
 │  Templates  │  Configuration  │  AI Providers  │  Utils    │
 └─────────────────────────────────────────────────────────────┘
@@ -122,7 +127,20 @@ class BaseProvider(ABC):
 
     @abstractmethod
     def health_check(self) -> bool
+
+    def supports_tool_calling(self) -> bool:
+        """Whether this provider supports agentic tool-calling."""
+        return False
+
+    def chat_with_tools(self, messages, tools, ...) -> dict:
+        """Send messages with tool definitions (OpenAI-compatible format)."""
+        raise NotImplementedError
 ```
+
+Providers that support tool-calling (Ollama, OpenAI, LMStudio) share a common
+`_openai_compatible_chat_with_tools()` helper in `base.py` that handles the
+OpenAI-compatible `/v1/chat/completions` format with tools, retry logic, and
+response parsing.
 
 #### Ollama Provider (`providers/ollama.py`)
 ```python
@@ -132,10 +150,69 @@ class OllamaProvider(BaseProvider):
         self.model = config.get('model')
 
     def generate(self, prompt: str, context: dict) -> str:
-        # HTTP request to Ollama API
-        # Error handling and retry logic
-        # Response parsing and validation
+        # HTTP request to Ollama API (/api/generate)
+
+    def supports_tool_calling(self) -> bool:
+        return True
+
+    def chat_with_tools(self, messages, tools, ...) -> dict:
+        # Uses /v1/chat/completions (OpenAI-compatible endpoint)
+        # Delegates to _openai_compatible_chat_with_tools()
 ```
+
+### 4b. Agentic Loop (`agentic/`)
+**Responsibility**: Iterative tool-calling loop for context-aware generation
+
+The agentic loop lets the LLM inspect diffs via tools before generating output,
+producing higher quality commit messages by allowing the model to selectively
+explore changes rather than receiving everything at once.
+
+#### Components
+- **`AgenticLoop`** (`agentic/loop.py`): Orchestrates the tool-calling loop
+  - Sends messages to provider via `chat_with_tools()`
+  - If LLM returns tool calls: executes them, appends results, continues
+  - If LLM returns text: returns as final result
+  - Max iterations safety with forced text response on limit
+
+- **`DiffInspectionTools`** (`agentic/tools.py`): Available tools
+  - `list_changed_files()` - Overview with content preview per file
+  - `get_file_diff(file_path)` - Full diff (truncated if >200 lines)
+  - `get_change_summary()` - Statistics and heuristics
+
+- **`AgenticResult`** (`agentic/loop.py`): Result dataclass with content,
+  model_used, iterations count, tool_calls_made, total_tokens_used
+
+#### Agentic Flow
+```
+1. CLI: gitai commit --preview --agentic
+   │
+2. Command Handler: commands/commit.py
+   │  ├─ (Steps 1-4 same as single-shot)
+   │  ├─ Create AgenticLoop(provider, diff_analysis, tracer)
+   │  ├─ loop.run(system_prompt, rendered_template)
+   │  │   ├─ Iteration 0: LLM calls list_changed_files()
+   │  │   ├─ Iteration 1: LLM calls get_file_diff("src/main.py")
+   │  │   ├─ Iteration 2: LLM calls get_file_diff("src/utils.py")
+   │  │   └─ Iteration 3: LLM returns final commit message
+   │  └─ Apply or preview
+   │
+3. Output: Commit applied or preview shown
+```
+
+### 4c. Observability (`observability/`)
+**Responsibility**: LLM call tracing and monitoring via Langfuse
+
+#### LangfuseAgenticTracer (`observability/langfuse_tracer.py`)
+Traces both single-shot and agentic generation:
+
+- **Single-shot**: `trace_generation(provider, request)` - wraps a single LLM call
+- **Agentic**: Nested span hierarchy per iteration:
+  - `start_trace()` → parent trace
+  - `start_llm_span()` / `end_llm_span()` → generation span per LLM call
+  - `start_tool_span()` / `end_tool_span()` → span per tool execution
+  - `end_trace()` → finalize and flush
+
+**Fail-safe**: Tracing errors never break generation. All methods wrapped in try/except.
 
 ### 5. Template System (`templates/`)
 **Responsibility**: Template discovery, loading, and rendering
@@ -379,6 +456,12 @@ def review():
 - **Log levels**: Debug, Info, Warning, Error, Critical
 - **Context preservation**: Include relevant context in logs
 - **Performance metrics**: Operation timing and resource usage
+
+### Langfuse Integration (Optional)
+- **Single-shot tracing**: Trace per generation call with prompt/response/latency
+- **Agentic tracing**: Nested spans per iteration (LLM calls + tool executions)
+- **Fail-safe**: Tracing errors never break generation
+- **Configuration**: Enable via `langfuse` section in config.yaml
 
 ### Metrics Collection (Future)
 - **Usage metrics**: Command frequency, template usage

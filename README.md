@@ -17,6 +17,7 @@ git add .
 gitai commit --preview           # Preview first
 gitai commit                     # Apply to git
 gitai commit -t minimal          # Use different template
+gitai commit --preview --agentic # Agentic mode: LLM inspects diffs via tools
 
 # Generate PR descriptions
 gitai pr --base main            # Generate PR description
@@ -31,9 +32,11 @@ gitai templates --list --type pr # List PR templates
 ## ✨ Key Features
 
 - **🤖 Multiple AI Providers**: OpenAI (GPT), Anthropic (Claude), Ollama, LMStudio (local)
+- **🔄 Agentic Mode**: LLM iteratively inspects diffs via tool-calling before generating commit messages (Ollama, OpenAI, LMStudio)
 - **📝 Smart Templates**: Conventional commits, GitHub/GitLab PR formats, **fully customizable with Jinja2**
 - **⚙️ Team Configuration**: Shared templates, conventions, multi-tier config
 - **🔍 Git Analysis**: Intelligent change detection and context building
+- **📊 Observability**: Optional Langfuse integration for tracing LLM calls and tool executions
 - **🛡️ Robust CLI**: Comprehensive validation, helpful errors, verbose logging
 - **🎨 Easy Customization**: Create your own templates with rich variables (files, changes, types, etc.)
 
@@ -97,9 +100,56 @@ gitai pr --base main -p lmstudio
 cp example-configs/openai-config.yaml ~/.config/gitai/config.yaml
 cp example-configs/anthropic-config.yaml ~/.config/gitai/config.yaml
 cp example-configs/multi-provider-config.yaml ~/.config/gitai/config.yaml
+cp example-configs/agentic-config.yaml ~/.config/gitai/config.yaml  # Agentic + Langfuse
 
 # Edit with your API keys
 nano ~/.config/gitai/config.yaml
+```
+
+## 🔄 Agentic Mode
+
+Agentic mode uses tool-calling to let the LLM iteratively inspect diffs before generating commit messages. Instead of sending the entire diff in one shot, the model calls tools to explore changes strategically.
+
+### How It Works
+
+1. The LLM receives the rendered template and calls `list_changed_files()` to see an overview of all changes
+2. Based on the overview, it selectively calls `get_file_diff(file_path)` for the most relevant files
+3. Optionally calls `get_change_summary()` for statistics
+4. When it has enough context, it generates the final commit message
+
+### Supported Providers
+
+Agentic mode uses the OpenAI-compatible `/v1/chat/completions` endpoint with tool calling:
+- **Ollama** - Requires a model with tool support (e.g., `qwen2.5:7b`, `llama3.1`)
+- **OpenAI** - GPT-3.5-turbo, GPT-4, etc.
+- **LMStudio** - Any model with tool-calling support
+- **Anthropic** - Not supported (falls back to single-shot automatically)
+
+### Configuration
+
+```yaml
+# In ~/.config/gitai/config.yaml
+agentic:
+  enabled: false        # Default agentic mode (overridden by --agentic flag)
+  max_iterations: 10    # Max tool-calling iterations before forcing response
+  max_diff_lines: 200   # Truncate large diffs (first half + last half)
+```
+
+### Observability with Langfuse
+
+Enable Langfuse to trace every LLM call and tool execution in agentic mode:
+
+```yaml
+langfuse:
+  enabled: true
+  public_key: "pk-lf-..."
+  secret_key: "sk-lf-..."
+  host: "https://cloud.langfuse.com"  # or self-hosted
+```
+
+Install the optional dependency:
+```bash
+pip install -e ".[observability]"
 ```
 
 ## 📋 Implementation Status
@@ -392,6 +442,11 @@ gitai commit -t minimal                  # Short, concise messages
 gitai commit -p openai                   # Use OpenAI
 gitai commit -p anthropic                # Use Claude
 
+# Agentic mode (-a flag)
+gitai commit --preview --agentic         # LLM inspects diffs via tool-calling
+gitai commit -a -p ollama --preview      # Agentic with specific provider
+gitai commit -a -p openai --preview      # Works with OpenAI, Ollama, LMStudio
+
 # Additional options
 gitai commit --include-untracked         # Include untracked files
 gitai commit -t emoji --preview          # Use custom template
@@ -456,6 +511,7 @@ scripts/development/check-types.sh
 # Core functionality (fully tested and working)
 gitai config --global                    # ✅ Configuration setup
 gitai commit --preview                   # ✅ Commit generation
+gitai commit --preview --agentic         # ✅ Agentic commit generation
 gitai pr --base main                     # ✅ PR generation
 gitai templates --list                   # ✅ Template management
 
@@ -466,6 +522,11 @@ gitai commit -p openai                   # ✅ Override default per command
 gitai commit -p anthropic                # ✅ Claude integration
 gitai commit -p ollama                   # ✅ Local Ollama
 gitai commit -p lmstudio                 # ✅ Local LMStudio
+
+# Agentic mode (tool-calling loop)
+gitai commit --preview -a                # ✅ Ollama agentic mode
+gitai commit --preview -a -p openai      # ✅ OpenAI agentic mode
+gitai commit --preview -a -p lmstudio    # ✅ LMStudio agentic mode
 ```
 
 ## 🔧 Troubleshooting

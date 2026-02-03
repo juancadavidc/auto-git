@@ -1,32 +1,60 @@
 {# Conventional Commits format template #}
 {# description: Generates commit messages following Conventional Commits specification #}
 {# variables: changes, repository, user #}
+{% extends "base.j2" %}
 
-{%- macro get_change_type(changes) -%}
-{%- if changes.is_feature %}feat{% elif changes.is_fix %}fix{% elif changes.is_refactor %}refactor{% elif changes.is_docs %}docs{% elif changes.is_test %}test{% else %}chore{% endif -%}
+{%- macro format_unified_diff(file) -%}
+{%- if file.hunks %}
+{%- for hunk in file.hunks[:5] %}
+{%- if hunk.function_context %}
+--- in {{ hunk.function_context }} ---
+{%- endif %}
+```diff
+{%- for line in hunk.unified_lines[:15] %}
+{{ line[:150] }}
+{%- endfor %}
+{%- if hunk.unified_lines|length > 15 %}
+  ... ({{ hunk.unified_lines|length - 15 }} more lines)
+{%- endif %}
+```
+{%- endfor %}
+{%- elif file.content_preview %}
+```diff
+{{ file.content_preview }}
+```
+{%- endif %}
 {%- endmacro -%}
 
-{%- macro format_file_list(files, max_files=5) -%}
-{%- for file in files[:max_files] -%}
-{{ file.path }}
-{%- if not loop.last %}, {% endif -%}
-{%- endfor -%}
-{%- if files|length > max_files %} (+{{ files|length - max_files }} more){% endif -%}
-{%- endmacro -%}
-
-{{ get_change_type(changes) }}{% if changes.scope %}({{ changes.scope }}){% endif %}{% if changes.breaking_change %}!{% endif %}: {{ changes.summary|capitalize_first }}
-
-{%- if changes.breaking_change %}
-
-BREAKING CHANGE: {{ changes.breaking_change }}
-{%- endif %}
-
-{%- if changes.body %}
-
-{{ changes.body }}
-{%- endif %}
-
+{% block content -%}
 {%- if changes.affected_files %}
 
 Files: {{ format_file_list(changes.affected_files) }}
+{%- for file in changes.affected_files %}
+{%- if file.content_preview %}
+
+Diff for {{ file.path }}:
+{{ file.content_preview }}
 {%- endif %}
+{%- endfor %}
+{%- endif %}
+
+## Changed Files
+{% for file in changes.affected_files %}
+### {{ file.path }} ({{ file.change_type }}, +{{ file.lines_added }}/-{{ file.lines_deleted }})
+{%- if file.is_test %} [TEST]{% endif %}
+{%- if file.is_config %} [CONFIG]{% endif %}
+{%- if file.is_docs %} [DOCS]{% endif %}
+
+{{ format_unified_diff(file) }}
+{% endfor %}
+
+## Instructions
+Analyze the unified diff above. Write a commit message:
+1. Subject: type(scope): specific description naming the concrete code entity or behavior changed
+2. Scope = module or component name from directory/class, NOT a file extension
+3. Be precise: name functions, classes, config keys, endpoints, or values that changed
+4. Body ONLY if change spans multiple concerns - explain WHY, not WHAT. Otherwise omit body entirely.
+5. Do NOT restate the subject in the body. Do NOT start with "This commit" or "The changes".
+
+Output ONLY the commit message.
+{%- endblock %}

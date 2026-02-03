@@ -5,7 +5,7 @@ import sys
 from typing import Any
 
 
-def setup_logger(name: str, level: str = "INFO") -> logging.Logger:
+def setup_logger(name: str, level: str = "WARNING") -> logging.Logger:
     """Setup structured logger for GitAI components.
 
     Args:
@@ -17,24 +17,19 @@ def setup_logger(name: str, level: str = "INFO") -> logging.Logger:
     """
     logger = logging.getLogger(name)
 
-    # Don't add handlers if they already exist
-    if logger.handlers:
-        return logger
+    # Configure root gitai logger with handler
+    root_logger = logging.getLogger("gitai")
+    if not root_logger.handlers:
+        root_logger.setLevel(getattr(logging, level.upper()))
 
-    # Set level
-    logger.setLevel(getattr(logging, level.upper()))
+        formatter = logging.Formatter(
+            fmt="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+            datefmt="%Y-%m-%d %H:%M:%S",
+        )
 
-    # Create formatter
-    formatter = logging.Formatter(
-        fmt="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-        datefmt="%Y-%m-%d %H:%M:%S",
-    )
-
-    # Create console handler
-    handler = logging.StreamHandler(sys.stderr)
-    handler.setFormatter(formatter)
-
-    logger.addHandler(handler)
+        handler = logging.StreamHandler(sys.stderr)
+        handler.setFormatter(formatter)
+        root_logger.addHandler(handler)
 
     return logger
 

@@ -30,6 +30,8 @@ class DiffHunk:
         removed_lines: Lines that were removed
         context_after: Lines after the change for context
         header: The hunk header (e.g., '@@ -10,5 +10,6 @@')
+        function_context: Function/class name extracted from the @@ header
+        unified_lines: Interleaved diff lines with +/-/space prefixes
     """
 
     start_line: int
@@ -39,16 +41,24 @@ class DiffHunk:
     removed_lines: List[str] = field(default_factory=list)
     context_after: List[str] = field(default_factory=list)
     header: str = ""
+    function_context: str = ""
+    unified_lines: List[str] = field(default_factory=list)
+
+    @property
+    def has_function_context(self) -> bool:
+        """Check if this hunk has function/class context."""
+        return bool(self.function_context)
 
     @property
     def summary(self) -> str:
         """Generate a summary of this hunk."""
+        prefix = f"in {self.function_context}: " if self.function_context else ""
         if self.added_lines and not self.removed_lines:
-            return f"Added {len(self.added_lines)} line(s)"
+            return f"{prefix}Added {len(self.added_lines)} line(s)"
         elif self.removed_lines and not self.added_lines:
-            return f"Removed {len(self.removed_lines)} line(s)"
+            return f"{prefix}Removed {len(self.removed_lines)} line(s)"
         else:
-            return f"Modified {len(self.added_lines) + len(self.removed_lines)} line(s)"
+            return f"{prefix}Modified {len(self.added_lines) + len(self.removed_lines)} line(s)"
 
 
 @dataclass

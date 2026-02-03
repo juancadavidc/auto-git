@@ -45,8 +45,8 @@ def main(ctx: click.Context, verbose: bool, config_path: Optional[Path]) -> None
     if verbose:
         import logging
 
-        logging.getLogger("gitai").setLevel(logging.DEBUG)
-        logger.debug("Verbose logging enabled")
+        logging.getLogger("gitai").setLevel(logging.INFO)
+        logger.info("Verbose logging enabled")
 
 
 @main.command()  # type: ignore[misc]
@@ -68,6 +68,12 @@ def main(ctx: click.Context, verbose: bool, config_path: Optional[Path]) -> None
 @click.option(  # type: ignore[misc]
     "--include-untracked", is_flag=True, help="Include untracked files in analysis"
 )
+@click.option(  # type: ignore[misc]
+    "--agentic",
+    "-a",
+    is_flag=True,
+    help="Use agentic mode: LLM inspects diffs via tool-calling before generating",
+)
 @click.pass_context  # type: ignore[misc]
 def commit(
     ctx: click.Context,
@@ -75,6 +81,7 @@ def commit(
     provider: str,
     preview: bool,
     include_untracked: bool,
+    agentic: bool,
 ) -> None:
     """Generate commit message from staged changes.
 
@@ -86,6 +93,7 @@ def commit(
         gitai commit --preview           # Show preview without committing
         gitai commit -t descriptive      # Use descriptive template
         gitai commit -p openai           # Use OpenAI provider
+        gitai commit --preview --agentic # Agentic mode with tool-calling
     """
     try:
         from gitai.commands.commit import handle_commit
@@ -97,6 +105,7 @@ def commit(
             provider=provider,
             preview=preview,
             include_untracked=include_untracked,
+            agentic=agentic,
             verbose=ctx.obj.get("verbose", False),
             config_path=ctx.obj.get("config_path"),
         )

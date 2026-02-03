@@ -94,3 +94,4 @@ Thumbs.db
 *.gitai.tmp
 .claude/
 old_docs/
+vscode-extension/

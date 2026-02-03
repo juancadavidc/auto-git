@@ -1,7 +1,7 @@
 {# Descriptive commit message template #}
 {# description: Generates detailed, descriptive commit messages #}
 {# variables: changes, repository, user #}
-{% extends "../base.j2" %}
+{% extends "base.j2" %}
 
 {% block content -%}
 {{ changes.summary|capitalize_first }}
@@ -21,6 +21,9 @@ Why: {{ changes.rationale }}
 Modified files:
 {%- for file in changes.affected_files %}
   - {{ file.path }}{% if file.change_type %} ({{ file.change_type }}){% endif %}
+{%- if file.content_preview %}
+{{ file.content_preview }}
+{%- endif %}
 {%- endfor %}
 {%- endif %}
 
