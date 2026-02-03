@@ -320,3 +320,7 @@ class LangfuseAgenticTracer:
                 self._client.shutdown()
             except Exception:
                 pass
+
+
+# Backward-compatible alias
+LangfuseTracer = LangfuseAgenticTracer

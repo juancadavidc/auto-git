@@ -1,7 +1,7 @@
 {# Descriptive commit message template #}
 {# description: Generates detailed, descriptive commit messages #}
 {# variables: changes, repository, user #}
-{% extends "../base.j2" %}
+{% extends "base.j2" %}
 
 {% block content -%}
 {{ changes.summary|capitalize_first }}

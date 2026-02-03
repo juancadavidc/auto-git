@@ -1,7 +1,7 @@
 {# Standard pull request template #}
 {# description: Generic PR description template for any platform #}
 {# variables: changes, repository, user, base_branch, head_branch #}
-{% extends "../base.j2" %}
+{% extends "base.j2" %}
 
 {% block content -%}
 # {{ changes.summary|capitalize_first }}

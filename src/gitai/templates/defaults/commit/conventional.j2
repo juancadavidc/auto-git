@@ -1,10 +1,7 @@
 {# Conventional Commits format template #}
 {# description: Generates commit messages following Conventional Commits specification #}
 {# variables: changes, repository, user #}
-
-{%- macro get_change_type(changes) -%}
-{%- if changes.is_feature %}feat{% elif changes.is_fix %}fix{% elif changes.is_refactor %}refactor{% elif changes.is_docs %}docs{% elif changes.is_test %}test{% else %}chore{% endif -%}
-{%- endmacro -%}
+{% extends "base.j2" %}
 
 {%- macro format_unified_diff(file) -%}
 {%- if file.hunks %}
@@ -26,7 +23,9 @@
 {{ file.content_preview }}
 ```
 {%- endif %}
+{%- endmacro -%}
 
+{% block content -%}
 {%- if changes.affected_files %}
 
 Files: {{ format_file_list(changes.affected_files) }}
@@ -58,3 +57,4 @@ Analyze the unified diff above. Write a commit message:
 5. Do NOT restate the subject in the body. Do NOT start with "This commit" or "The changes".
 
 Output ONLY the commit message.
+{%- endblock %}
