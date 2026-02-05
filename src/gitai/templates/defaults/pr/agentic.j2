@@ -1,0 +1,31 @@
+{# Agentic mode template - instructions only, no diff content #}
+{# description: Template for agentic mode where LLM uses tools to inspect diffs #}
+{# variables: changes, repository, user, base_branch, head_branch #}
+
+## PR Description Format
+
+Generate a GitHub-style pull request description.
+
+### Format Requirements:
+
+Use the following sections:
+
+1. **Summary** - Brief overview of what this PR does (1-2 sentences)
+
+2. **Changes** - List of changes organized by category:
+   - Added files
+   - Modified files
+   - Deleted files
+
+3. **Testing** - How to test these changes
+
+4. **Checklist** - Standard PR checklist items
+
+### Instructions:
+1. Use your tools to inspect the branch changes
+2. Call list_changed_files() first to see what files changed
+3. Call get_file_diff(file_path) for important files to understand the changes
+4. Call get_change_summary() for overall statistics
+
+Once you have gathered enough context, output the PR description.
+Do NOT wrap in markdown code blocks or JSON.

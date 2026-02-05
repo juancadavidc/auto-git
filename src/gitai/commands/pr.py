@@ -13,7 +13,7 @@ from gitai.templates.context import build_pr_context
 from gitai.templates.manager import create_template_manager
 from gitai.utils.exceptions import GitAIError, InvalidRepositoryError
 from gitai.utils.logger import log_with_context, setup_logger
-from gitai.utils.prompts import get_system_prompt
+from gitai.utils.prompts import get_agentic_system_prompt, get_system_prompt
 from gitai.utils.validation import (
     create_helpful_error_message,
     validate_branch_has_changes,
@@ -29,6 +29,7 @@ def handle_pr(
     template: str,
     provider: Optional[str],
     output_file: Optional[Path],
+    agentic: bool = False,
     verbose: bool = False,
     config_path: Optional[Path] = None,
 ) -> Optional[str]:
@@ -39,6 +40,7 @@ def handle_pr(
         template: Template name to use
         provider: AI provider name
         output_file: Optional output file path
+        agentic: Use agentic mode with tool-calling
         verbose: Enable verbose logging
         config_path: Optional config file path
 
@@ -165,34 +167,124 @@ def handle_pr(
 
         ai_provider = provider_factory.create_provider(provider, provider_config)
 
-        # 6. Generate PR description (with optional Langfuse tracing)
-        request = GenerationRequest(
-            prompt=rendered_template,
-            context=template_context,
-            system_prompt=get_system_prompt("pr"),
-        )
+        # 6. Generate PR description
+        if agentic and ai_provider.supports_tool_calling():
+            # Agentic mode: LLM uses tools to inspect diffs iteratively
+            from gitai.agentic.loop import AgenticLoop
 
-        langfuse_config = config.get_langfuse_config()
-        if langfuse_config:
-            tracer = LangfuseTracer(langfuse_config)
-            response = tracer.trace_generation(
-                provider=ai_provider,
-                request=request,
-                command="pr",
-                metadata={"template": template, "base_branch": base_branch},
+            log_with_context(
+                logger, "info", "Using agentic mode with tool-calling"
             )
-        else:
+
+            # Setup Langfuse tracer if configured
+            tracer = None
+            langfuse_config = config.langfuse
+            if langfuse_config and langfuse_config.enabled:
+                try:
+                    from gitai.observability.langfuse_tracer import (
+                        LangfuseAgenticTracer,
+                    )
+
+                    tracer = LangfuseAgenticTracer(langfuse_config.model_dump())
+                except Exception as e:
+                    logger.warning(f"Failed to initialize Langfuse tracer: {e}")
+
+            # Get agentic config
+            agentic_config = config.agentic
+            max_iterations = (
+                agentic_config.max_iterations if agentic_config else 10
+            )
+
+            # Use agentic template (instructions only, no diff content)
+            try:
+                agentic_template = template_manager.render_template(
+                    "agentic", "pr", template_context
+                )
+            except Exception:
+                # Fallback to minimal instructions if agentic template not found
+                agentic_template = (
+                    "Generate a GitHub-style PR description.\n"
+                    "Use your tools to inspect the branch changes first.\n"
+                    "Include sections: Summary, Changes, Testing."
+                )
+
+            loop = AgenticLoop(
+                provider=ai_provider,
+                diff_analysis=diff_analysis,
+                max_iterations=max_iterations,
+                tracer=tracer,
+            )
+
+            agentic_result = loop.run(
+                system_prompt=get_agentic_system_prompt("pr"),
+                user_prompt=agentic_template,
+            )
+
+            pr_description = agentic_result.content.strip()
+
+            log_with_context(
+                logger,
+                "info",
+                "PR description generated (agentic)",
+                description_length=len(pr_description),
+                model_used=agentic_result.model_used,
+                iterations=agentic_result.iterations,
+                tool_calls=len(agentic_result.tool_calls_made),
+            )
+
+        elif agentic and not ai_provider.supports_tool_calling():
+            # Provider doesn't support tools — warn and fall back
+            log_with_context(
+                logger,
+                "warning",
+                "Provider does not support agentic mode, falling back to single-shot",
+                provider=provider,
+            )
+            request = GenerationRequest(
+                prompt=rendered_template,
+                context=template_context,
+                system_prompt=get_system_prompt("pr"),
+            )
             response = ai_provider.generate(request)
+            pr_description = response.content.strip()
 
-        pr_description = response.content.strip()
+            log_with_context(
+                logger,
+                "info",
+                "PR description generated (fallback)",
+                description_length=len(pr_description),
+                model_used=response.model_used,
+            )
 
-        log_with_context(
-            logger,
-            "info",
-            "PR description generated",
-            description_length=len(pr_description),
-            model_used=response.model_used,
-        )
+        else:
+            # Standard single-shot generation (with optional Langfuse tracing)
+            request = GenerationRequest(
+                prompt=rendered_template,
+                context=template_context,
+                system_prompt=get_system_prompt("pr"),
+            )
+
+            langfuse_config = config.get_langfuse_config()
+            if langfuse_config:
+                tracer = LangfuseTracer(langfuse_config)
+                response = tracer.trace_generation(
+                    provider=ai_provider,
+                    request=request,
+                    command="pr",
+                    metadata={"template": template, "base_branch": base_branch},
+                )
+            else:
+                response = ai_provider.generate(request)
+
+            pr_description = response.content.strip()
+
+            log_with_context(
+                logger,
+                "info",
+                "PR description generated",
+                description_length=len(pr_description),
+                model_used=response.model_used,
+            )
 
         # 7. Output result
         if output_file:

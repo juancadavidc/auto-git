@@ -148,9 +148,20 @@ def commit(
     type=click.Path(path_type=Path),
     help="Output file for PR description (default: stdout)",
 )
+@click.option(  # type: ignore[misc]
+    "--agentic",
+    "-a",
+    is_flag=True,
+    help="Use agentic mode: LLM inspects diffs via tool-calling before generating",
+)
 @click.pass_context  # type: ignore[misc]
 def pr(
-    ctx: click.Context, base: str, template: str, provider: str, output: Optional[Path]
+    ctx: click.Context,
+    base: str,
+    template: str,
+    provider: str,
+    output: Optional[Path],
+    agentic: bool,
 ) -> None:
     """Generate PR description from branch changes.
 
@@ -162,6 +173,7 @@ def pr(
         gitai pr --base develop          # Compare against develop branch
         gitai pr -o pr.md               # Save to file
         gitai pr -t detailed            # Use detailed template
+        gitai pr --agentic              # Agentic mode with tool-calling
     """
     try:
         from gitai.commands.pr import handle_pr
@@ -173,6 +185,7 @@ def pr(
             template=template,
             provider=provider,
             output_file=output,
+            agentic=agentic,
             verbose=ctx.obj.get("verbose", False),
             config_path=ctx.obj.get("config_path"),
         )
