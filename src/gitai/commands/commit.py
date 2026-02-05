@@ -189,6 +189,20 @@ def handle_commit(
                 agentic_config.max_iterations if agentic_config else 10
             )
 
+            # Use agentic template (instructions only, no diff content)
+            # This forces the LLM to use tools to inspect the diff
+            try:
+                agentic_template = template_manager.render_template(
+                    "agentic", "commit", template_context
+                )
+            except Exception:
+                # Fallback to minimal instructions if agentic template not found
+                agentic_template = (
+                    "Generate a commit message following Conventional Commits.\n"
+                    "Use your tools to inspect the staged changes first.\n"
+                    "Output ONLY the commit message text."
+                )
+
             loop = AgenticLoop(
                 provider=ai_provider,
                 diff_analysis=diff_analysis,
@@ -198,7 +212,7 @@ def handle_commit(
 
             agentic_result = loop.run(
                 system_prompt=get_agentic_system_prompt("commit"),
-                user_prompt=rendered_template,
+                user_prompt=agentic_template,
             )
 
             commit_message = _extract_message(agentic_result.content.strip())
